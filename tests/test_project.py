@@ -15,9 +15,7 @@ class TagTestCase(unittest.TestCase):
     
     def test_OpenProject(self):
         """Confirm test l5x file can be opened"""
-        if self.prj == None:
-            self.assertTrue(False)  
-        self.assertTrue(True)  
+        self.assertTrue(self.prj != None) 
      
     def test_ConfirmBooleanTag(self):
         """Confirm boolean1 tag exists and is correct"""  
@@ -65,7 +63,13 @@ class TagTestCase(unittest.TestCase):
         self.assertEqual(ctl_tags[tag].description, description)     
         self.assertEqual(ctl_tags[tag].external_access, external_access) 
         self.assertEqual(ctl_tags[tag].constant, constant) 
-            
+        
+    def test_ConfirmProgram(self):
+        """Confirm MainProgram gets created"""  
+        name = 'MainProgram'        
+        self.assertTrue(name in self.prj.programs.names) 
+       
+
 
 if __name__ == "__main__": 
     unittest.main()
