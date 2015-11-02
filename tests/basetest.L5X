@@ -52,7 +52,17 @@
 </Tags>
 <Programs>
 <Program Name="MainProgram" TestEdits="false" MainRoutineName="MainRoutine" Disabled="false">
-<Tags/>
+<Tags>
+<Tag Name="boolean2" TagType="Base" DataType="BOOL" Radix="Decimal" Constant="false" ExternalAccess="Read/Write">
+<Description>
+<![CDATA[Test Boolean 2]]>
+</Description>
+<Data>00</Data>
+<Data Format="Decorated">
+<DataValue DataType="BOOL" Radix="Decimal" Value="0"/>
+</Data>
+</Tag>
+</Tags>
 <Routines>
 <Routine Name="MainRoutine" Type="RLL"/>
 </Routines>

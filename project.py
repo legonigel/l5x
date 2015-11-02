@@ -13,6 +13,7 @@ without worrying about low-level XML handling.
 from .dom import (ElementAccess, ElementDict, AttributeDescriptor)
 from .module import (Module, SafetyNetworkNumber)
 from .tag import Scope
+from .program import ProgramScope
 import xml.dom.minidom
 import xml.parsers.expat
 
@@ -38,10 +39,10 @@ class Project(ElementAccess):
 
         ctl_element = self.get_child_element('Controller')
         self.controller = Controller(ctl_element)
-
+        
         progs = self.controller.get_child_element('Programs')
-        self.programs = ElementDict(progs, 'Name', Scope)
-
+        self.programs = ElementDict(progs, 'Name', Program)
+      
         mods = self.controller.get_child_element('Modules')
         self.modules = ElementDict(mods, 'Name', Module)
 
@@ -90,3 +91,6 @@ class Controller(Scope):
     """Accessor object for the controller device."""
     comm_path = AttributeDescriptor('CommPath')
     snn = ControllerSafetyNetworkNumber()
+    
+class Program(ProgramScope):
+    """Accessor object for a program."""
