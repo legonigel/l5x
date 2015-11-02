@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="20.01" TargetName="basetest" TargetType="Controller" ContainsContext="false" Owner="default" ExportDate="Mon Nov 02 00:22:02 2015" ExportOptions="DecoratedData ForceProtectedEncoding AllProjDocTrans">
-<Controller Use="Target" Name="basetest" ProcessorType="1756-L75" MajorRev="20" MinorRev="11" TimeSlice="20" ShareUnusedTimeSlice="1" ProjectCreationDate="Mon Nov 02 00:20:40 2015" LastModifiedDate="Mon Nov 02 00:21:31 2015" SFCExecutionControl="CurrentActive" SFCRestartPosition="MostRecent"
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="20.01" TargetName="basetest" TargetType="Controller" ContainsContext="false" Owner="Default" ExportDate="Mon Nov 02 04:15:51 2015" ExportOptions="DecoratedData ForceProtectedEncoding AllProjDocTrans">
+<Controller Use="Target" Name="basetest" ProcessorType="1756-L75" MajorRev="20" MinorRev="11" TimeSlice="20" ShareUnusedTimeSlice="1" ProjectCreationDate="Mon Nov 02 00:20:40 2015" LastModifiedDate="Mon Nov 02 04:15:10 2015" SFCExecutionControl="CurrentActive" SFCRestartPosition="MostRecent"
  SFCLastScan="DontScan" ProjectSN="16#0000_0000" MatchProjectToController="false" CanUseRPIFromProducer="false" InhibitAutomaticFirmwareUpdate="0">
 <Description>
 <![CDATA[Base test project to be used with l5x python package]]>
@@ -52,6 +52,9 @@
 </Tags>
 <Programs>
 <Program Name="MainProgram" TestEdits="false" MainRoutineName="MainRoutine" Disabled="false">
+<Description>
+<![CDATA[Test Program Description]]>
+</Description>
 <Tags>
 <Tag Name="boolean2" TagType="Base" DataType="BOOL" Radix="Decimal" Constant="false" ExternalAccess="Read/Write">
 <Description>
@@ -64,7 +67,85 @@
 </Tag>
 </Tags>
 <Routines>
-<Routine Name="MainRoutine" Type="RLL"/>
+<Routine Name="MainRoutine" Type="RLL">
+<RLLContent>
+<Rung Number="0" Type="N">
+<Text>
+<![CDATA[JSR(TestFunctionBlockRoutine,0);]]>
+</Text>
+</Rung>
+<Rung Number="1" Type="N">
+<Text>
+<![CDATA[JSR(TestSeqFunctionChartRoutine,0);]]>
+</Text>
+</Rung>
+<Rung Number="2" Type="N">
+<Text>
+<![CDATA[JSR(TestLadderRoutine,0);]]>
+</Text>
+</Rung>
+<Rung Number="3" Type="N">
+<Text>
+<![CDATA[JSR(TestStructuredTextRoutine,0);]]>
+</Text>
+</Rung>
+</RLLContent>
+</Routine>
+<Routine Name="TestFunctionBlockRoutine" Type="FBD">
+<Description>
+<![CDATA[Test Function Block Routine]]>
+</Description>
+<FBDContent SheetSize="Letter - 8.5 x 11 in" SheetOrientation="Landscape">
+<Sheet Number="1">
+<IRef ID="0" X="160" Y="120" Operand="boolean1" HideDesc="false"/>
+<ORef ID="1" X="500" Y="120" Operand="boolean2" HideDesc="false"/>
+<Wire FromID="0" ToID="1"/>
+<TextBox ID="2" X="0" Y="0" Width="0">
+<Text>
+<![CDATA[Test Function Block Description On Sheet]]>
+</Text>
+</TextBox>
+</Sheet>
+</FBDContent>
+</Routine>
+<Routine Name="TestLadderRoutine" Type="RLL">
+<Description>
+<![CDATA[Test Ladder Routine Description]]>
+</Description>
+<RLLContent>
+<Rung Number="0" Type="N">
+<Text>
+<![CDATA[XIC(boolean1)OTE(boolean2);]]>
+</Text>
+</Rung>
+<Rung Number="1" Type="N">
+<Text>
+<![CDATA[XIO(boolean1)OTU(boolean2);]]>
+</Text>
+</Rung>
+<Rung Number="2" Type="N">
+<Text>
+<![CDATA[XIC(boolean1)OTL(boolean2);]]>
+</Text>
+</Rung>
+</RLLContent>
+</Routine>
+<Routine Name="TestSeqFunctionChartRoutine" Type="SFC">
+<Description>
+<![CDATA[Tes Sequential Funciton Chart Routine Description]]>
+</Description>
+<SFCContent SheetSize="Letter - 8.5 x 11 in" SheetOrientation="Landscape"/>
+</Routine>
+<Routine Name="TestStructuredTextRoutine" Type="ST">
+<Description>
+<![CDATA[Test Structured Text Routine]]>
+</Description>
+<STContent>
+<Line Number="0">
+<![CDATA[]]>
+</Line>
+</STContent>
+</Routine>
 </Routines>
 </Program>
 </Programs>

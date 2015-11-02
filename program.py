@@ -30,5 +30,31 @@ class Routine(ElementAccess):
 
     def __init__(self, element):
         ElementAccess.__init__(self, element)
+        
+        if self.type == "RLL":
+            rung_element = self.get_child_element('RLLContent')
+            self.rungs = ElementDict(rung_element, 'Number', Rung)
+        elif type == "FBD":
+            sheet_element = self.get_child_element('FBDContent')
+            self.sheets = ElementDict(sheet_element, 'Number', Sheet)
+
+class Rung(ElementAccess):
+    """Base class for a single rung."""
+    description = ElementDescription(['Description'])
+    number = AttributeDescriptor('Number', True)   
+    type = AttributeDescriptor('Type', True) 
 
 
+    def __init__(self, element):
+        ElementAccess.__init__(self, element)
+        
+        self.text = str(CDATAElement(self.get_child_element('Text')))
+        
+class Sheet(ElementAccess):
+    """Base class for a single sheet."""
+    description = ElementDescription(['Description'])
+    sheet_size = AttributeDescriptor('SheetSize', True)   
+    sheet_orientation = AttributeDescriptor('SheetOrientation', True)  
+
+    def __init__(self, element):
+        ElementAccess.__init__(self, element)

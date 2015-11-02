@@ -62,11 +62,14 @@ class TagTestCase(unittest.TestCase):
         program = 'MainProgram'        
         name = 'MainRoutine'   
         type = "RLL"
+        rung_type = "N"
+        rung_text = "JSR(TestFunctionBlockRoutine,0);"
               
         self.assertTrue(name in self.prj.programs[program].routines.names)  
         routine = self.prj.programs[program].routines[name]
         self.assertEqual(routine.type, type)
-
+        self.assertEqual(routine.rungs['0'].type, rung_type)
+        self.assertEqual(routine.rungs['0'].text, rung_text)       
 
     def test_ConfirmProgramTag(self):
         """Confirm boolean2 tag exists and is correct""" 
