@@ -18,51 +18,31 @@ class TagTestCase(unittest.TestCase):
         self.assertTrue(self.prj != None) 
      
     def test_ConfirmBooleanTag(self):
-        """Confirm boolean1 tag exists and is correct"""  
-        description = 'Test Boolean 1'
-        tag = 'boolean1'
-        data_type = 'BOOL'   
-        external_access = 'Read/Write'
-        constant = "false"
-        
-        ctl_tags = self.prj.controller.tags
-        tag_names = ctl_tags.names                
-        self.assertTrue(tag in tag_names)        
-        self.assertEqual(ctl_tags[tag].data_type, data_type)            
-        self.assertEqual(ctl_tags[tag].description, description)     
-        self.assertEqual(ctl_tags[tag].external_access, external_access) 
+        """Confirm boolean1 tag exists and is correct""" 
+        self.assertBaseTag(self.prj.controller.tags,\
+                      'boolean1',\
+                      'Test Boolean 1',\
+                      'BOOL',\
+                      'Read/Write',\
+                      "false")  
         
     def test_ConfirmRealTag(self):
         """Confirm real1 tag exists and is correct"""  
-        description = 'Test Real 1'
-        tag = 'real1'
-        data_type = 'REAL'   
-        external_access = 'Read/Write'
-        constant = "false"     
-        
-        ctl_tags = self.prj.controller.tags
-        tag_names = ctl_tags.names                
-        self.assertTrue(tag in tag_names)        
-        self.assertEqual(ctl_tags[tag].data_type, data_type)            
-        self.assertEqual(ctl_tags[tag].description, description)     
-        self.assertEqual(ctl_tags[tag].external_access, external_access) 
-        self.assertEqual(ctl_tags[tag].constant, constant) 
+        self.assertBaseTag(self.prj.controller.tags,\
+                      'real1',\
+                      'Test Real 1',\
+                      'REAL',\
+                      'Read/Write',\
+                      "false")  
 
     def test_ConfirmDintTag(self):
-        """Confirm DINT1 tag exists and is correct"""  
-        description = 'Test DINT 1'
-        tag = 'dint1'
-        data_type = 'DINT'   
-        external_access = 'Read/Write'
-        constant = "false"     
-        
-        ctl_tags = self.prj.controller.tags
-        tag_names = ctl_tags.names                
-        self.assertTrue(tag in tag_names)        
-        self.assertEqual(ctl_tags[tag].data_type, data_type)            
-        self.assertEqual(ctl_tags[tag].description, description)     
-        self.assertEqual(ctl_tags[tag].external_access, external_access) 
-        self.assertEqual(ctl_tags[tag].constant, constant) 
+        """Confirm DINT1 tag exists and is correct"""                
+        self.assertBaseTag(self.prj.controller.tags,\
+                      'dint1',\
+                      'Test DINT 1',\
+                      'DINT',\
+                      'Read/Write',\
+                      "false")  
         
     def test_ConfirmProgram(self):
         """Confirm MainProgram gets created"""  
@@ -89,21 +69,23 @@ class TagTestCase(unittest.TestCase):
 
 
     def test_ConfirmProgramTag(self):
-        """Confirm boolean2 tag exists and is correct"""  
-        description = 'Test Boolean 2'
-        tag = 'boolean2'
-        data_type = 'BOOL'   
-        external_access = 'Read/Write'
-        constant = "false"
+        """Confirm boolean2 tag exists and is correct""" 
         program = 'MainProgram'   
+        self.assertBaseTag(self.prj.programs[program].tags,\
+                      'boolean2',\
+                      'Test Boolean 2',\
+                      'BOOL',\
+                      'Read/Write',\
+                      "false")       
+
+    def assertBaseTag(self, tags, tag, description, data_type, external_access, constant):
+        """Asserts that the tag is found and has the correct attributes"""  
+        self.assertTrue(tag in tags.names)        
+        self.assertEqual(tags[tag].data_type, data_type)            
+        self.assertEqual(tags[tag].description, description)     
+        self.assertEqual(tags[tag].external_access, external_access) 
+        self.assertEqual(tags[tag].constant, constant) 
         
-        prog_tags = self.prj.programs[program].tags
-        tag_names = prog_tags.names                
-        self.assertTrue(tag in tag_names)        
-        self.assertEqual(prog_tags[tag].data_type, data_type)            
-        self.assertEqual(prog_tags[tag].description, description)     
-        self.assertEqual(prog_tags[tag].external_access, external_access) 
-        self.assertEqual(prog_tags[tag].constant, constant) 
 
        
 if __name__ == "__main__": 
