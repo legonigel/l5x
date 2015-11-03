@@ -95,14 +95,15 @@ class ElementDescription(object):
     Description elements contain a CDATA comment for some type of
     container element, such as a Tag or Module.
     """
-    def __init__(self, follow=[]):
+    def __init__(self, follow=[], element='Description'):
         """Store a list of elements which must preceed the description."""
-        self.follow = follow
+        self.follow = follow   
+        self.element = element     
 
     def __get__(self, instance, owner=None):
         """Returns the current description string."""
         try:
-            element = instance.get_child_element('Description')
+            element = instance.get_child_element(self.element)
         except KeyError:
             return None
         cdata = CDATAElement(element)
@@ -114,7 +115,7 @@ class ElementDescription(object):
         # element if necessary.
         if isinstance(value, str):
             try:
-                element = instance.get_child_element('Description')
+                element = instance.get_child_element(self.element)
             except KeyError:
                 cdata = self.create(instance)
             else:
@@ -125,7 +126,7 @@ class ElementDescription(object):
         # A value of None removes any existing description.
         elif value is None:
             try:
-                element = instance.get_child_element('Description')
+                element = instance.get_child_element(self.element)
             except KeyError:
                 pass
             else:
@@ -137,7 +138,7 @@ class ElementDescription(object):
 
     def create(self, instance):
         """Creates a new Description element."""
-        new = CDATAElement(parent=instance, name='Description')
+        new = CDATAElement(parent=instance, name=self.element)
 
         # Search for any elements listed in the follow attribute.
         follow = None
@@ -229,15 +230,27 @@ class ElementDict(ElementAccess):
     names = ElementDictNames()
 
     def __init__(self, parent, key_attr, types, type_attr=None, dfl_type=None,
-                 key_type=str, member_args=[]):
+                 key_type=str, member_args=[], seq_key=False, use_filter=False, filter=''):
         ElementAccess.__init__(self, parent)
         self.types = types
         self.type_attr = type_attr
         self.dfl_type = dfl_type
         self.member_args = member_args
 
-        member_elements = self.child_elements
-        keys = [key_type(e.getAttribute(key_attr)) for e in member_elements]
+
+        m_elements = self.child_elements
+        
+        if use_filter:
+            member_elements = []
+            for e in m_elements:
+                if e.nodeName == filter:
+                    member_elements += [e]
+        else:
+            member_elements = m_elements
+        if seq_key:
+            keys = range(0,len(member_elements))
+        else:
+            keys = [key_type(e.getAttribute(key_attr)) for e in member_elements]
         self.members = dict(zip(keys, member_elements))
 
     def __getitem__(self, key):
