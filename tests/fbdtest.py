@@ -49,6 +49,17 @@ class FBDCase(unittest.TestCase):
         self.assertEqual(sheet.textbox['2'].text, 'Test Function Block Description On Sheet')
         self.assertEqual(sheet.textbox['2'].width, '0')
 
+    def test_Wire(self):
+        """Confirm Wire Nodes are created correctly"""
+        program = 'MainProgram'        
+        routine = 'TestFunctionBlockRoutine'  
+        sheet = '1'
+     
+        sheet = self.prj.programs[program].routines[routine].sheets[sheet]
+        self.assertEqual(sheet.wire['0'].fromID, '0')
+        self.assertEqual(sheet.wire['0'].toID, '1')
+
+        
         
 if __name__ == "__main__": 
     unittest.main()

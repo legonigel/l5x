@@ -236,10 +236,9 @@ class ElementDict(ElementAccess):
         self.type_attr = type_attr
         self.dfl_type = dfl_type
         self.member_args = member_args
-
-
+       
+        #Used to select elements based on their name
         m_elements = self.child_elements
-        
         if use_filter:
             member_elements = []
             for e in m_elements:
@@ -247,8 +246,10 @@ class ElementDict(ElementAccess):
                     member_elements += [e]
         else:
             member_elements = m_elements
+        
+        #Used to create a key sequence if an attribute isn't available
         if seq_key:
-            keys = range(0,len(member_elements))
+            keys = tuple(str(y) for y in range(0,len(member_elements)))
         else:
             keys = [key_type(e.getAttribute(key_attr)) for e in member_elements]
         self.members = dict(zip(keys, member_elements))
