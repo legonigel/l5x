@@ -10,8 +10,8 @@ __get__() method. In this way the application can process L5X projects
 without worrying about low-level XML handling.
 """
 
-from .dom import (ElementAccess, ElementDict, AttributeDescriptor)
-from .module import (Module, SafetyNetworkNumber)
+from .dom import (ElementAccess, ElementDict, AttributeDescriptor, ElementDescription, ChildElements)
+from .module import (Module, SafetyNetworkNumber, CatalogNumber)
 from .tag import Scope
 from .program import ProgramScope
 import xml.dom.minidom
@@ -86,10 +86,99 @@ class ControllerSafetyNetworkNumber(SafetyNetworkNumber):
         modules = ElementAccess(instance.get_child_element('Modules'))
         return ElementAccess(modules.child_elements[0])
 
+class ProcessorType(AttributeDescriptor):
+    """Descriptor class for accessing a controller's processor's type.
+
+    This class handles the fact that the controller's type is stored in two 
+    places. With the Controller Element as wells as within the module named local
+    The set method gets overloaded so that it writes to the module as well.
+    """     
+    child_elements = ChildElements()  
+        
+    def __init__(self):
+        """Executes superclass's initializer with attribute name."""
+        super(ProcessorType, self).__init__('ProcessorType')
+  
+    def __set__(self, instance, value):        
+        if self.read_only is True:
+            raise AttributeError('Attribute is read-only')
+        new_value = self.to_xml(value)
+        if new_value is not None:
+            instance.element.setAttribute(self.name, new_value)        
+            modules = instance.get_child_element('Modules')            
+            modules.getElementsByTagName('Module')[0].setAttribute('CatalogNumber', new_value)
+        else:
+            raise AttributeError('Cannot remove ProcessorType attribute')  
+   
+class MajorRev(AttributeDescriptor):
+    """Descriptor class for accessing a controller's major revision.
+
+    This class handles the fact that the controller's type is stored in two 
+    places. With the Controller Element as wells as within the module named local
+    The set method gets overloaded so that it writes to the module as well.
+    """     
+    child_elements = ChildElements()  
+        
+    def __init__(self):
+        """Executes superclass's initializer with attribute name."""
+        super(MajorRev, self).__init__('MajorRev')
+  
+    def __set__(self, instance, value):        
+        if self.read_only is True:
+            raise AttributeError('Attribute is read-only')
+        new_value = self.to_xml(value)
+        if new_value is not None:
+            instance.element.setAttribute(self.name, new_value)        
+            modules = instance.get_child_element('Modules')            
+            modules.getElementsByTagName('Module')[0].setAttribute('Major', new_value)
+        else:
+            raise AttributeError('Cannot remove MajorRev attribute')      
+
+class MinorRev(AttributeDescriptor):
+    """Descriptor class for accessing a controller's minor revision.
+
+    This class handles the fact that the controller's type is stored in two 
+    places. With the Controller Element as wells as within the module named local
+    The set method gets overloaded so that it writes to the module as well.
+    """     
+    child_elements = ChildElements()  
+        
+    def __init__(self):
+        """Executes superclass's initializer with attribute name."""
+        super(MinorRev, self).__init__('MinorRev')
+  
+    def __set__(self, instance, value):        
+        if self.read_only is True:
+            raise AttributeError('Attribute is read-only')
+        new_value = self.to_xml(value)
+        if new_value is not None:
+            instance.element.setAttribute(self.name, new_value)        
+            modules = instance.get_child_element('Modules')            
+            modules.getElementsByTagName('Module')[0].setAttribute('Minor', new_value)
+        else:
+            raise AttributeError('Cannot remove MinorRev attribute')   
 
 class Controller(Scope):
     """Accessor object for the controller device."""
+    description = ElementDescription()
     comm_path = AttributeDescriptor('CommPath')
+    use = AttributeDescriptor('Use')
+    processor_type = ProcessorType()    
+    major_revision = MajorRev()
+    minor_revision = MinorRev()
+    time_slice = AttributeDescriptor('TimeSlice')
+    share_unused_time_slice = AttributeDescriptor('ShareUnusedTimeSlice')
+    project_creation_date = AttributeDescriptor('ProjectCreationDate')
+    last_modified_date = AttributeDescriptor('LastModifiedDate')
+    sfc_execution_control = AttributeDescriptor('SFCExecutionControl')
+    sfc_restart_position = AttributeDescriptor('SFCRestartPosition')
+    sfc_last_scan = AttributeDescriptor('SFCLastScan')
+    project_sn = AttributeDescriptor('ProjectSN')
+    match_project_to_controller = AttributeDescriptor('MatchProjectToController')
+    can_use_rpi_from_producer = AttributeDescriptor('CanUseRPIFromProducer')
+    inhibit_automatic_firmware_update = AttributeDescriptor('InhibitAutomaticFirmwareUpdate')
+    
+    
     snn = ControllerSafetyNetworkNumber()
     
 class Program(ProgramScope):

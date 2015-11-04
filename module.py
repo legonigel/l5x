@@ -4,6 +4,11 @@ Objects for accessing a set of I/O modules.
 
 from .dom import (ElementAccess, ElementDict, AttributeDescriptor)
 
+class CatalogNumber(AttributeDescriptor):
+    """Descriptor class for accessing catalog numbers."""
+    def __init__(self):
+        """Executes superclass's initializer with attribute name."""
+        super(CatalogNumber, self).__init__('CatalogNumber')
 
 class SafetyNetworkNumber(AttributeDescriptor):
     """Descriptor class for accessing safety network numbers."""
@@ -49,6 +54,9 @@ class SafetyNetworkNumber(AttributeDescriptor):
 class Module(ElementAccess):
     """Accessor object for a communication module."""
     snn = SafetyNetworkNumber()
+    catalog_number = AttributeDescriptor('CatalogNumber')
+    minor = AttributeDescriptor('Minor')
+    major = AttributeDescriptor('Major')
 
     def __init__(self, element):
         ElementAccess.__init__(self, element)
