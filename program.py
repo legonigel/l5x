@@ -44,7 +44,6 @@ class Rung(ElementAccess):
     number = AttributeDescriptor('Number', True)   
     type = AttributeDescriptor('Type', True) 
 
-
     def __init__(self, element):
         ElementAccess.__init__(self, element)        
         self.text = str(CDATAElement(self.get_child_element('Text')))

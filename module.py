@@ -54,9 +54,6 @@ class SafetyNetworkNumber(AttributeDescriptor):
 class Module(ElementAccess):
     """Accessor object for a communication module."""
     snn = SafetyNetworkNumber()
-    catalog_number = AttributeDescriptor('CatalogNumber')
-    minor = AttributeDescriptor('Minor')
-    major = AttributeDescriptor('Major')
 
     def __init__(self, element):
         ElementAccess.__init__(self, element)
