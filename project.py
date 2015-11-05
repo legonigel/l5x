@@ -11,54 +11,59 @@ without worrying about low-level XML handling.
 """
 
 from .dom import (ElementAccess, ElementDict, AttributeDescriptor, ElementDescription, ChildElements)
-from .module import (Module, SafetyNetworkNumber, CatalogNumber)
+from .module import (Module, SafetyNetworkNumber)
 from .tag import Scope
 from .program import ProgramScope
+from .errors import InvalidFile
 import xml.dom.minidom
 import xml.parsers.expat
 
-
-class InvalidFile(Exception):
-    """Raised if the given .L5X file was not a proper L5X export."""
-    pass
-
-
 class Project(ElementAccess):
-    """Top-level container for an entire Logix project."""
+    """Top-level container for an entire Logix project.
+        
+    :param filename: File to be parsed in the l5x structure    
+    :var programs: :class:`ElementDict` Dictionary for all programs and their routines
+    :var controller: :class`Controller` Container for PLC specific information such as type, serial number, etc..
+    :var modules: :class:`ElementDict` Dictionary for Hardware modules and layout"""
     def __init__(self, filename):
         try:
-            doc = xml.dom.minidom.parse(filename)
+            _doc = xml.dom.minidom.parse(filename)
         except xml.parsers.expat.ExpatError as e:
-            msg = xml.parsers.expat.ErrorString(e.code)
-            raise InvalidFile("XML parsing error: {0}".format(msg))
+            _msg = xml.parsers.expat.ErrorString(e.code)
+            raise InvalidFile("XML parsing error: {0}".format(_msg))
 
-        if doc.documentElement.tagName != 'RSLogix5000Content':
+        if _doc.documentElement.tagName != 'RSLogix5000Content':
             raise InvalidFile('Not an L5X file.')
 
-        ElementAccess.__init__(self, doc.documentElement)
-
-        ctl_element = self.get_child_element('Controller')
-        self.controller = Controller(ctl_element)
+        ElementAccess.__init__(self, _doc.documentElement)
         
-        progs = self.controller.get_child_element('Programs')
-        self.programs = ElementDict(progs, 'Name', Program)
+        _controller = self.get_child_element('Controller')        
+        self.controller = Controller(_controller)
+        
+        _programs = self.controller.get_child_element('Programs')
+        self.programs = ElementDict(_programs, 'Name', Program) 
       
-        mods = self.controller.get_child_element('Modules')
-        self.modules = ElementDict(mods, 'Name', Module)
+        _modules = self.controller.get_child_element('Modules')
+        self.modules = ElementDict(_modules, 'Name', Module)
 
     def write(self, filename):
-        """Outputs the document to a new file."""
-        f = open(filename, 'w')
-        self.doc.writexml(f, encoding='UTF-8')
-        f.close()
+        """Writes the l5x structure to a file
+        
+        :param filename: path to output file"""
+        file = open(filename, 'w')
+        self.doc.writexml(file, encoding='UTF-8')
+        file.close()
 
 
-def append_child_element(name, parent):
-    """Creates and appends a new child XML element."""
-    doc = get_doc(parent)
-    new = doc.createElement(name)
-    parent.appendChild(new)
-    return new
+    def append_child_element(self, name, parent):
+        """Creates and appends a new child XML element.
+                
+        :param name: Name of element to be appended
+        :param parent: Where new element should be attached"""
+        temp_doc = self.get_doc(parent)
+        new = temp_doc.createElement(name)
+        parent.appendChild(new)
+        return new
 
 
 class ControllerSafetyNetworkNumber(SafetyNetworkNumber):
@@ -88,14 +93,14 @@ class ControllerSafetyNetworkNumber(SafetyNetworkNumber):
 
 class ProcessorType(AttributeDescriptor):
     """Descriptor class for accessing a controller's processor's type.
-
-    This class handles the fact that the controller's type is stored in two 
-    places. With the Controller Element as wells as within the module named local
-    The set method gets overloaded so that it writes to the module as well.
-    """     
-    child_elements = ChildElements()  
-        
+    
+    The processor type is identified using a part number with the format:-
+    \"controller family-module type\". e.g. \"1756-L75\""""
     def __init__(self):
+        """ProcessorType is to help make it easier when the processor type needs to be changed
+        by modifying the underlying XML elements. It is stored in two places project.controller
+        as well as the XML element for project.module['Local']"""
+        self._child_elements = ChildElements()  
         """Executes superclass's initializer with attribute name."""
         super(ProcessorType, self).__init__('ProcessorType')
   
@@ -113,13 +118,13 @@ class ProcessorType(AttributeDescriptor):
 class MajorRev(AttributeDescriptor):
     """Descriptor class for accessing a controller's major revision.
 
-    This class handles the fact that the controller's type is stored in two 
-    places. With the Controller Element as wells as within the module named local
-    The set method gets overloaded so that it writes to the module as well.
-    """     
-    child_elements = ChildElements()  
-        
+    The revision of the processer's firmware is stored as a major and minor revision
+    such as 20.11 or 19.01"""             
     def __init__(self):
+        """Helps make it easier when the revision needs to be changed
+        by modifying the underlying XML elements. It is stored in two places project.controller
+        as well as the XML element for project.module['Local']"""  
+        self._child_elements = ChildElements() 
         """Executes superclass's initializer with attribute name."""
         super(MajorRev, self).__init__('MajorRev')
   
@@ -135,15 +140,15 @@ class MajorRev(AttributeDescriptor):
             raise AttributeError('Cannot remove MajorRev attribute')      
 
 class MinorRev(AttributeDescriptor):
-    """Descriptor class for accessing a controller's minor revision.
+    """Descriptor class for accessing a controller's major revision.
 
-    This class handles the fact that the controller's type is stored in two 
-    places. With the Controller Element as wells as within the module named local
-    The set method gets overloaded so that it writes to the module as well.
-    """     
-    child_elements = ChildElements()  
-        
+    The revision of the processer's firmware is stored as a major and minor revision
+    such as 20.11 or 19.01"""         
     def __init__(self):
+        """Helps make it easier when the revision needs to be changed
+        by modifying the underlying XML elements. It is stored in two places project.controller
+        as well as the XML element for project.module['Local']"""  
+        self._child_elements = ChildElements() 
         """Executes superclass's initializer with attribute name."""
         super(MinorRev, self).__init__('MinorRev')
   
@@ -159,10 +164,32 @@ class MinorRev(AttributeDescriptor):
             raise AttributeError('Cannot remove MinorRev attribute')   
 
 class Controller(Scope):
-    """Accessor object for the controller device."""
+    """Container class to store controller specific settings
+    
+    :param element: XML element to be used to populate structure 
+    :var programs: :class:`ElementDict`  Dictionary containing all programs
+    :var description: :class:`ElementDescription` Controller description
+    :var comm_path: :class:`AttributeDescriptor` Communication path configured using <RSLinx Node>\<IP Address>\Slot Number. This is the node from the computer to the processor
+    :var use: :class:`AttributeDescriptor` This is associated with the context to be used when import the l5x into RSLogix 5000
+    :var processor_type: :class:`ProcessorType` The processor type is identified using a part number with the format:-<controller family>-<module type>. e.g. 1756-L75
+    :var major_revision: :class:`MajorRev` Major Revision number of processor firmware
+    :var minor_revision: :class:`MinorRev` Minor revision number of processor
+    :var time_slice: :class:`AttributeDescriptor` The percentage of the processors time that should be allocated for communications tasks.
+    :var share_unused_time_slice: :class:`AttributeDescriptor` Selection of whether or not to use the unused time for the continous task or not
+    :var project_creation_date: :class:`AttributeDescriptor`
+    :var last_modified_date: :class:`AttributeDescriptor`
+    :var sfc_execution_control: :class:`AttributeDescriptor`
+    :var sfc_restart_position: :class:`AttributeDescriptor`
+    :var sfc_last_scan: :class:`AttributeDescriptor`
+    :var project_sn: :class:`AttributeDescriptor`
+    :var match_project_to_controller: :class:`AttributeDescriptor`
+    :var can_use_rpi_from_producer: :class:`AttributeDescriptor`
+    :var inhibit_automatic_firmware_update: :class:`AttributeDescriptor`
+    :var snn: :class:`ControllerSafetyNetworkNumber`"""
+
     description = ElementDescription()
     comm_path = AttributeDescriptor('CommPath')
-    use = AttributeDescriptor('Use')
+    use = AttributeDescriptor('Use') 
     processor_type = ProcessorType()    
     major_revision = MajorRev()
     minor_revision = MinorRev()
@@ -176,10 +203,12 @@ class Controller(Scope):
     project_sn = AttributeDescriptor('ProjectSN')
     match_project_to_controller = AttributeDescriptor('MatchProjectToController')
     can_use_rpi_from_producer = AttributeDescriptor('CanUseRPIFromProducer')
-    inhibit_automatic_firmware_update = AttributeDescriptor('InhibitAutomaticFirmwareUpdate')
-    
-    
+    inhibit_automatic_firmware_update = AttributeDescriptor('InhibitAutomaticFirmwareUpdate') 
     snn = ControllerSafetyNetworkNumber()
+
+    def __init__(self, element):    
+        """Executes superclass's initializer with attribute name."""
+        Scope.__init__(self, element)
     
 class Program(ProgramScope):
     """Accessor object for a program."""

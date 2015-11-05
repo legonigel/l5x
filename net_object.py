@@ -13,7 +13,7 @@ class fbdObject(ElementAccess):
     """Abstract class for fbdObjects"""
     x = AttributeDescriptor('X', True)   
     y = AttributeDescriptor('Y', True) 
-    
+   
 class IRef(fbdObject):
     """Base class for a single IRef""" 
     operand = AttributeDescriptor('Operand', True)  

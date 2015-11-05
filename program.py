@@ -55,8 +55,8 @@ class Sheet(ElementAccess):
     sheet_orientation = AttributeDescriptor('SheetOrientation', True)  
 
     def __init__(self, element):
-        ElementAccess.__init__(self, element)
-       
+        ElementAccess.__init__(self, element)        
+      
         self.iref = ElementDict(self.element, \
                                 'ID', \
                                 IRef, \
