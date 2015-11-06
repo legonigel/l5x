@@ -18,12 +18,12 @@ class FBDCase(unittest.TestCase):
         program = 'MainProgram'        
         routine = 'TestFunctionBlockRoutine'  
         sheet = '1'
-     
-        sheet = self.prj.programs[program].routines[routine].sheets[sheet]
-        self.assertEqual(sheet.iref['0'].x, '160')
-        self.assertEqual(sheet.iref['0'].y, '120')
-        self.assertEqual(sheet.iref['0'].operand, 'boolean1')
-        self.assertEqual(sheet.iref['0'].hide_desc, 'false')
+      
+        iref = self.prj.programs[program].routines[routine].sheets[sheet].blocks['0']
+        self.assertEqual(iref.x, '160')
+        self.assertEqual(iref.y, '120')
+        self.assertEqual(iref.operand, 'boolean1')
+        self.assertEqual(iref.hide_desc, 'false')
         
     def test_Oref(self):
         """Confirm Oref Nodes are created correctly"""
@@ -31,11 +31,11 @@ class FBDCase(unittest.TestCase):
         routine = 'TestFunctionBlockRoutine'  
         sheet = '1'
      
-        sheet = self.prj.programs[program].routines[routine].sheets[sheet]
-        self.assertEqual(sheet.oref['1'].x, '500')
-        self.assertEqual(sheet.oref['1'].y, '120')
-        self.assertEqual(sheet.oref['1'].operand, 'boolean2')
-        self.assertEqual(sheet.oref['1'].hide_desc, 'false')
+        oref = self.prj.programs[program].routines[routine].sheets[sheet].blocks['1']
+        self.assertEqual(oref.x, '500')
+        self.assertEqual(oref.y, '120')
+        self.assertEqual(oref.operand, 'boolean2')
+        self.assertEqual(oref.hide_desc, 'false')
 
     def test_TextBox(self):
         """Confirm Textbox Nodes are created correctly"""
@@ -43,11 +43,12 @@ class FBDCase(unittest.TestCase):
         routine = 'TestFunctionBlockRoutine'  
         sheet = '1'
      
-        sheet = self.prj.programs[program].routines[routine].sheets[sheet]
-        self.assertEqual(sheet.textbox['2'].x, '0')
-        self.assertEqual(sheet.textbox['2'].y, '0')
-        self.assertEqual(sheet.textbox['2'].text, 'Test Function Block Description On Sheet')
-        self.assertEqual(sheet.textbox['2'].width, '0')
+        textbox = self.prj.programs[program].routines[routine].sheets[sheet].blocks['2']
+        self.assertEqual(textbox.x, '0')
+        self.assertEqual(textbox.y, '0')
+        self.assertEqual(textbox.text, 'Test Function Block Description On Sheet')
+        self.assertEqual(textbox.width, '0')
+        self.assertTrue(type(textbox) is l5x.net_object.TextBox)
 
     def test_Wire(self):
         """Confirm Wire Nodes are created correctly"""
@@ -72,7 +73,20 @@ class FBDCase(unittest.TestCase):
         self.assertEqual(newprj.programs[program].routines[routine].sheet_size, \
                          "A4")
         self.assertEqual(newprj.programs[program].routines[routine].get_child_element("FBDContent").getAttribute('SheetSize'), \
-                         "A4 - 210x297 mm")        
+                         "A4 - 210x297 mm")       
+        
+    def test_SheetOrientation(self):
+        """Confirm Sheet Size is written and read correctly"""
+        program = 'MainProgram'        
+        routine = 'TestFunctionBlockRoutine'  
+        sheet = '1'
+
+        self.assertEqual(self.prj.programs[program].routines[routine].sheet_orientation, \
+                         'Landscape')
+        self.prj.programs[program].routines[routine].sheet_orientation = "Portrait"
+        newprj = self.write_read_project()        
+        self.assertEqual(newprj.programs[program].routines[routine].sheet_orientation, \
+                         "Portrait")        
 
     def write_read_project(self):
         self.prj.write('./tests/__results__/basetest_output.L5X')

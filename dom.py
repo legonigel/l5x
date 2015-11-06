@@ -250,20 +250,25 @@ class ElementDict(ElementAccess):
     names = ElementDictNames()
 
     def __init__(self, parent, key_attr, types=None, type_attr=None, dfl_type=None,
-                 key_type=str, member_args=[], seq_key=False, use_filter=False, filter=''):
+                 key_type=str, member_args=[], seq_key=False, use_tag_filter=False, tag_filter='', use_tagname=False, use_attr_filter=False):
         ElementAccess.__init__(self, parent)
         self.types = types
         self.type_attr = type_attr
         self.dfl_type = dfl_type
         self.member_args = member_args
+        self.use_tagname = use_tagname
        
         #Used to select elements based on their name
         m_elements = self.child_elements
-        if use_filter:
+        if use_tag_filter or use_attr_filter:
             member_elements = []
             for e in m_elements:
-                if e.nodeName == filter:
-                    member_elements += [e]
+                if use_attr_filter:
+                    if e.hasAttribute(key_attr):
+                        member_elements += [e]
+                else:                    
+                    if e.nodeName == tag_filter:
+                        member_elements += [e]
         else:
             member_elements = m_elements
         
@@ -289,6 +294,8 @@ class ElementDict(ElementAccess):
         except TypeError:
             if self.type_attr is not None:
                 type_name = element.getAttribute(self.type_attr)
+            elif self.use_tagname:                
+                type_name = element.nodeName
             else:
                 type_name = key
             return self.types.get(type_name, self.dfl_type)(*args)

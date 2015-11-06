@@ -132,9 +132,11 @@ class FBDRoutine(Routine):
     its own structure.
     
     :param element: XML element to be used.     
-    :var sheet_size: :class:`SheetSize` The sheet size of the routines sheets. e.g. A0, Letter, Legal, etc..
+    :var sheet_size: :class:`.SheetSize` Sheets are sized using standard page sizes *Letter*, *Legal*, *Tabloid*, *A*, *B*, *C*, *D*, *E*, *A4*, *A3*, *A2*, *A1*, *A0*
+    :var sheet_orientation: :class:`.dom.AttributeDescriptor` Orientation of sheet. e.g. *Landscape* or *Portrait*
     :var sheets: :class:`Sheet` Dictionary containing all the sheets. Only available if type is *FBD*"""
     sheet_size = SheetSize('FBDContent')    
+    sheet_orientation = AttributeDescriptor('SheetOrientation', False, 'FBDContent')  
 
     def __init__(self, element):
         ElementAccess.__init__(self, element)
@@ -191,33 +193,28 @@ class Sheet(ElementAccess):
     type of block. Wires connect two pins together
     
     :param element: XML element to be used. 
-    :var description: :class:`.dom.ElementDescription` Rung description    
-    :var sheet_size: :class:`.SheetSize` Sheets are sized using standard page sizes *Letter*, *Legal*, *Tabloid*, *A*, *B*, *C*, *D*, *E*, *A4*, *A3*, *A2*, *A1*, *A0*"""
+    :var description: :class:`.dom.ElementDescription` Rung description   
+    :var blocks: :class:`.dom.ElementDict` Dictionary used to store all logic blocks
+    :var wire: :class:`.dom.ElementDict` Dictionary used to store all interconnecting wires
+    """
     description = ElementDescription() 
-    sheet_orientation = AttributeDescriptor('SheetOrientation', True)  
 
     def __init__(self, element):
         ElementAccess.__init__(self, element)        
-      
-        self.iref = ElementDict(self.element, \
-                                'ID', \
-                                IRef, \
-                                use_filter=True, \
-                                filter="IRef")
-        self.oref = ElementDict(self.element, \
-                                'ID', \
-                                ORef, \
-                                use_filter=True, \
-                                filter="ORef")
-        self.textbox = ElementDict(self.element, \
-                                   'ID', \
-                                   TextBox, \
-                                   use_filter=True, \
-                                   filter="TextBox")
+
+        self.blocks = ElementDict(element, \
+                            'ID', \
+                            {'IRef' : IRef, \
+                            'ORef' : ORef, \
+                            'TextBox' : TextBox},
+                            use_tagname= True, \
+                            use_attr_filter = True)
+        
         self.wire = ElementDict(self.element, \
                                 '', \
                                 Wire, \
                                 seq_key=True, \
-                                use_filter=True, \
-                                filter="Wire")
+                                use_tag_filter=True, \
+                                tag_filter="Wire")
+
      
