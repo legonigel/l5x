@@ -98,7 +98,17 @@ class SheetSize(AttributeDescriptor):
         return value
 
 class Routine(ElementAccess):
-    pass
+    """Base Routine container 
+    
+    :param element: XML element to be used.    
+    :var description: :class:`.dom.ElementDescription` Routine description
+    :var type: :class:`.dom.AttributeDescriptor` Type of routine, *RLL*, *FBD*, *SFC* or *ST*
+    """
+    description = ElementDescription()
+    type = AttributeDescriptor('Type', True) 
+    def __init__(self, element):
+        ElementAccess.__init__(self, element)  
+        
 
 class RLLRoutine(Routine):
     """Ladder Routine Container
@@ -108,16 +118,11 @@ class RLLRoutine(Routine):
     its own structure.
     
     :param element: XML element to be used.    
-    :var description: :class:`.dom.ElementDescription` Routine description
-    :var type: :class:`.dom.AttributeDescriptor` Type of routine, *RLL*, *FBD*, *SFC* or *ST*
-    :var rungs: :class:`Rung` Dictionary containing all the rungs. Only available if type is *RLL*"""
-    description = ElementDescription()
-    type = AttributeDescriptor('Type', True)    
-
+    :var rungs: :class:`Rung` Dictionary containing all the rungs. Only available if type is *RLL*"""  
     def __init__(self, element):
-        ElementAccess.__init__(self, element)  
-        rung_element = self.get_child_element('RLLContent')
-        self.rungs = ElementDict(rung_element, 'Number', Rung)
+        Routine.__init__(self, element)  
+        _rung_element = self.get_child_element('RLLContent')
+        self.rungs = ElementDict(_rung_element, 'Number', Rung)
 
 class FBDRoutine(Routine):
     """Function Block Routine Container
@@ -126,12 +131,9 @@ class FBDRoutine(Routine):
     Sequential Function Chart and Structured Text. Each type of routine has 
     its own structure.
     
-    :param element: XML element to be used.    
-    :var description: :class:`.dom.ElementDescription` Routine description
-    :var type: :class:`.dom.AttributeDescriptor` Type of routine, *RLL*, *FBD*, *SFC* or *ST*   
-    :var sheet: :class:`Sheet` Dictionary containing all the sheets. Only available if type is *FBD*"""
-    description = ElementDescription()
-    type = AttributeDescriptor('Type', True)
+    :param element: XML element to be used.     
+    :var sheet_size: :class:`SheetSize` The sheet size of the routines sheets. e.g. A0, Letter, Legal, etc..
+    :var sheets: :class:`Sheet` Dictionary containing all the sheets. Only available if type is *FBD*"""
     sheet_size = SheetSize('FBDContent')    
 
     def __init__(self, element):
@@ -140,52 +142,27 @@ class FBDRoutine(Routine):
         self.sheets = ElementDict(_fbd_content, 'Number', Sheet)
 
 class SFCRoutine(Routine):
-    """Ladder Routine Container
+    """Sequential Function Chart Routine Container
      
     Routines can be one of four types Ladder, Function Block, 
     Sequential Function Chart and Structured Text. Each type of routine has 
     its own structure.
     
-    :param element: XML element to be used.    
-    :var description: :class:`.dom.ElementDescription` Routine description
-    :var type: :class:`.dom.AttributeDescriptor` Type of routine, *RLL*, *FBD*, *SFC* or *ST*
-    :var rungs: :class:`Rung` Dictionary containing all the rungs. Only available if type is *RLL*
-    :var sheet: :class:`Sheet` Dictionary containing all the sheets. Only available if type is *FBD*"""
-    description = ElementDescription()
-    type = AttributeDescriptor('Type', True)    
+    :param element: XML element to be used."""   
 
     def __init__(self, element):
-        ElementAccess.__init__(self, element)        
-        if self.type == "RLL":
-            rung_element = self.get_child_element('RLLContent')
-            self.rungs = ElementDict(rung_element, 'Number', Rung)
-        elif self.type == "FBD":            
-            sheet_element = self.get_child_element('FBDContent')            
-            self.sheets = ElementDict(sheet_element, 'Number', Sheet)
+        ElementAccess.__init__(self, element)      
 
 class STRoutine(Routine):
-    """Ladder Routine Container
+    """Structured Text Routine Container
      
     Routines can be one of four types Ladder, Function Block, 
     Sequential Function Chart and Structured Text. Each type of routine has 
     its own structure.
     
-    :param element: XML element to be used.    
-    :var description: :class:`.dom.ElementDescription` Routine description
-    :var type: :class:`.dom.AttributeDescriptor` Type of routine, *RLL*, *FBD*, *SFC* or *ST*
-    :var rungs: :class:`Rung` Dictionary containing all the rungs. Only available if type is *RLL*
-    :var sheet: :class:`Sheet` Dictionary containing all the sheets. Only available if type is *FBD*"""
-    description = ElementDescription()
-    type = AttributeDescriptor('Type', True)    
-
+    :param element: XML element to be used.""" 
     def __init__(self, element):
-        ElementAccess.__init__(self, element)        
-        if self.type == "RLL":
-            rung_element = self.get_child_element('RLLContent')
-            self.rungs = ElementDict(rung_element, 'Number', Rung)
-        elif self.type == "FBD":            
-            sheet_element = self.get_child_element('FBDContent')            
-            self.sheets = ElementDict(sheet_element, 'Number', Sheet)
+        ElementAccess.__init__(self, element)  
             
 class Rung(ElementAccess):
     """A single rung within a Ladder routine.
