@@ -165,30 +165,50 @@ class ElementDescription(object):
 
 class AttributeDescriptor(object):
     """Generic descriptor class for accessing an XML element's attribute."""
-    def __init__(self, name, read_only=False):
+    def __init__(self, name, read_only=False, use_element=None):
         self.name = name
         self.read_only = read_only
+        self.use_element = use_element
 
-    def __get__(self, instance, owner=None):
-        if (instance.element.hasAttribute(self.name)):
-            raw = instance.element.getAttribute(self.name)
-            return self.from_xml(raw)
-        return None
+    def __get__(self, instance, owner=None):        
+        if self.use_element is None:            
+            if (instance.element.hasAttribute(self.name)):
+                raw = instance.element.getAttribute(self.name)            
+                return self.from_xml(raw)
+            else:
+                return None            
+        else:
+            try:                
+                _use_element = instance.get_child_element(self.use_element)
+                raw = _use_element.getAttribute(self.name)
+                return self.from_xml(raw)
+            except KeyError:
+                return None
+        
 
     def __set__(self, instance, value):
         if self.read_only is True:
             raise AttributeError('Attribute is read-only')
         new_value = self.to_xml(value)
-        if new_value is not None:
-            instance.element.setAttribute(self.name, new_value)
-
+        if new_value is not None:            
+            if self.use_element is None:                
+                instance.element.setAttribute(self.name, new_value)   
+            else:                
+                _use_element = instance.get_child_element(self.use_element)
+                _use_element.setAttribute(self.name, new_value)
+ 
         # Delete the attribute if value is None, ignoring the case if the
         # attribute didn't exist to begin with.
         else:
             try:
-                instance.element.removeAttribute(self.name)
+                if self.use_element is None:
+                    instance.element.removeAttribute(self.name)
+                else:
+                    _use_element = instance.get_child_element(self.use_element)
+                    _use_element.removeAttribute(self.name)
             except xml.dom.NotFoundErr:
                 pass
+
 
     def from_xml(self, value):
         """Default converter for reading attribute string.
@@ -229,7 +249,7 @@ class ElementDict(ElementAccess):
     """
     names = ElementDictNames()
 
-    def __init__(self, parent, key_attr, types, type_attr=None, dfl_type=None,
+    def __init__(self, parent, key_attr, types=None, type_attr=None, dfl_type=None,
                  key_type=str, member_args=[], seq_key=False, use_filter=False, filter=''):
         ElementAccess.__init__(self, parent)
         self.types = types
@@ -263,8 +283,8 @@ class ElementDict(ElementAccess):
 
         args = [element]
         args.extend(self.member_args)
-
-        try:
+        
+        try:            
             return self.types(*args)
         except TypeError:
             if self.type_attr is not None:

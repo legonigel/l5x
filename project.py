@@ -13,7 +13,7 @@ without worrying about low-level XML handling.
 from .dom import (ElementAccess, ElementDict, AttributeDescriptor, ElementDescription, ChildElements)
 from .module import (Module, SafetyNetworkNumber)
 from .tag import Scope
-from .program import ProgramScope
+from .program import Program
 from .errors import InvalidFile
 import xml.dom.minidom
 import xml.parsers.expat
@@ -22,9 +22,9 @@ class Project(ElementAccess):
     """Top-level container for an entire Logix project.
         
     :param filename: File to be parsed in the l5x structure    
-    :var programs: :class:`ElementDict` Dictionary for all programs and their routines
+    :var programs: :class:`.dom.ElementDict` Dictionary for all programs and their routines
     :var controller: :class`Controller` Container for PLC specific information such as type, serial number, etc..
-    :var modules: :class:`ElementDict` Dictionary for Hardware modules and layout"""
+    :var modules: :class:`.dom.ElementDict` Dictionary for Hardware modules and layout"""
     def __init__(self, filename):
         try:
             _doc = xml.dom.minidom.parse(filename)
@@ -167,25 +167,25 @@ class Controller(Scope):
     """Container class to store controller specific settings
     
     :param element: XML element to be used to populate structure 
-    :var programs: :class:`ElementDict`  Dictionary containing all programs
-    :var description: :class:`ElementDescription` Controller description
-    :var comm_path: :class:`AttributeDescriptor` Communication path configured using <RSLinx Node>\<IP Address>\Slot Number. This is the node from the computer to the processor
-    :var use: :class:`AttributeDescriptor` This is associated with the context to be used when import the l5x into RSLogix 5000
+    :var programs: :class:`.dom.ElementDict`  Dictionary containing all programs
+    :var description: :class:`.dom.ElementDescription` Controller description
+    :var comm_path: :class:`.dom.AttributeDescriptor` Communication path configured using <RSLinx Node>\<IP Address>\Slot Number. This is the node from the computer to the processor
+    :var use: :class:`.dom.AttributeDescriptor` This is associated with the context to be used when import the l5x into RSLogix 5000
     :var processor_type: :class:`ProcessorType` The processor type is identified using a part number with the format:-<controller family>-<module type>. e.g. 1756-L75
     :var major_revision: :class:`MajorRev` Major Revision number of processor firmware
     :var minor_revision: :class:`MinorRev` Minor revision number of processor
-    :var time_slice: :class:`AttributeDescriptor` The percentage of the processors time that should be allocated for communications tasks.
-    :var share_unused_time_slice: :class:`AttributeDescriptor` Selection of whether or not to use the unused time for the continous task or not
-    :var project_creation_date: :class:`AttributeDescriptor`
-    :var last_modified_date: :class:`AttributeDescriptor`
-    :var sfc_execution_control: :class:`AttributeDescriptor`
-    :var sfc_restart_position: :class:`AttributeDescriptor`
-    :var sfc_last_scan: :class:`AttributeDescriptor`
-    :var project_sn: :class:`AttributeDescriptor`
-    :var match_project_to_controller: :class:`AttributeDescriptor`
-    :var can_use_rpi_from_producer: :class:`AttributeDescriptor`
-    :var inhibit_automatic_firmware_update: :class:`AttributeDescriptor`
-    :var snn: :class:`ControllerSafetyNetworkNumber`"""
+    :var time_slice: :class:`.dom.AttributeDescriptor` The percentage of the processors time that should be allocated for communications tasks.
+    :var share_unused_time_slice: :class:`.dom.AttributeDescriptor` Selection of whether or not to use the unused time for the continous task or not
+    :var project_creation_date: :class:`.dom.AttributeDescriptor` Date project was first created. e.g. "Mon Nov 02 04:15:51 2015"
+    :var last_modified_date: :class:`.dom.AttributeDescriptor` Date project was last modified. e.g. "Mon Nov 02 04:15:51 2015"
+    :var sfc_execution_control: :class:`.dom.AttributeDescriptor` Unsure. e.g. "CurrentActive"
+    :var sfc_restart_position: :class:`.dom.AttributeDescriptor`Unsure. e.g. "MostRecent"
+    :var sfc_last_scan: :class:.dom.`AttributeDescriptor` Unsure. e.g. "MostRecent"
+    :var project_sn: :class:`.dom.AttributeDescriptor` Serial number of the processor that the project is tied to. e.g. 16#0000_0000
+    :var match_project_to_controller: :class:`.dom.AttributeDescriptor`  Boolean to indicate the project can only be downloaded to the serial number specified with `match_project_to_controller`
+    :var can_use_rpi_from_producer: :class:`.dom.AttributeDescriptor` Allow a tag producer to specify the RPI to be used. Normally the consumer specifies this.
+    :var inhibit_automatic_firmware_update: :class:`.dom.AttributeDescriptor` Selection to block the update of the processor firmware
+    :var snn: :class:`ControllerSafetyNetworkNumber` Safety network number used  in safety controllers."""
 
     description = ElementDescription()
     comm_path = AttributeDescriptor('CommPath')
@@ -210,5 +210,3 @@ class Controller(Scope):
         """Executes superclass's initializer with attribute name."""
         Scope.__init__(self, element)
     
-class Program(ProgramScope):
-    """Accessor object for a program."""

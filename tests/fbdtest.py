@@ -59,6 +59,24 @@ class FBDCase(unittest.TestCase):
         self.assertEqual(sheet.wire['0'].fromID, '0')
         self.assertEqual(sheet.wire['0'].toID, '1')
 
+    def test_A4SheetSize(self):
+        """Confirm Sheet Size is written and read correctly"""
+        program = 'MainProgram'        
+        routine = 'TestFunctionBlockRoutine'  
+        sheet = '1'
+
+        self.assertEqual(self.prj.programs[program].routines[routine].sheet_size, \
+                         'Letter')
+        self.prj.programs[program].routines[routine].sheet_size = "A4"
+        newprj = self.write_read_project()        
+        self.assertEqual(newprj.programs[program].routines[routine].sheet_size, \
+                         "A4")
+        self.assertEqual(newprj.programs[program].routines[routine].get_child_element("FBDContent").getAttribute('SheetSize'), \
+                         "A4 - 210x297 mm")        
+
+    def write_read_project(self):
+        self.prj.write('./tests/__results__/basetest_output.L5X')
+        return l5x.Project('./tests/__results__/basetest_output.L5X')
         
         
 if __name__ == "__main__": 
