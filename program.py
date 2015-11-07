@@ -24,9 +24,9 @@ class Program(ElementAccess):
     :var tags: :class:`.dom.ElementDict` Dictionary for storing program scoped tags
     :var routines: :class:`.dom.ElementDict` Dictionary for routines"""  
     description = ElementDescription()
-    test_edits = AttributeDescriptor('TestEdits', True)
-    main_routine_name = AttributeDescriptor('MainRoutineName', True)  
-    disabled = AttributeDescriptor('Disabled', True)  
+    test_edits = AttributeDescriptor('TestEdits', False)
+    main_routine_name = AttributeDescriptor('MainRoutineName', False)  
+    disabled = AttributeDescriptor('Disabled', False)  
         
     def __init__(self, element):
         ElementAccess.__init__(self, element)
@@ -106,7 +106,7 @@ class Routine(ElementAccess):
     :var type: :class:`.dom.AttributeDescriptor` Type of routine, *RLL*, *FBD*, *SFC* or *ST*
     """
     description = ElementDescription()
-    type = AttributeDescriptor('Type', True) 
+    type = AttributeDescriptor('Type', False) 
     def __init__(self, element):
         ElementAccess.__init__(self, element)  
         
@@ -185,8 +185,8 @@ class Rung(ElementAccess):
     :var type: :class:`.dom.ElementDescription` Type of rung. Not sure but should indicate if a test/edit has been applied to the rung.
     :var text: Contains the raw l5x text for the rung.    """
     description = ElementDescription()
-    number = AttributeDescriptor('Number', True)   
-    type = AttributeDescriptor('Type', True) 
+    number = AttributeDescriptor('Number', False)   
+    type = AttributeDescriptor('Type', False) 
 
     def __init__(self, element):
         ElementAccess.__init__(self, element)        

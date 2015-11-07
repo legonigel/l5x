@@ -4,8 +4,9 @@ Created on 2nd Nov 2015
 @author: hutcheb
 '''
 import unittest, l5x
+from l5x.tests import common_testing
 
-class BaseTest(unittest.TestCase):
+class BaseTest(common_testing.DefaultCase):
 
     def setUp(self):
         self.prj = l5x.Project('./tests/basetest.L5X')       
@@ -72,7 +73,6 @@ class BaseTest(unittest.TestCase):
         self.assertEqual(routine.rungs['0'].type, rung_type)
         self.assertEqual(routine.rungs['0'].text, rung_text)       
     
-    """Test Confirm Case"""
     def test_ConfirmProgramTag(self):
         """Confirm boolean2 tag exists and is correct""" 
         program = 'MainProgram'   
@@ -81,7 +81,29 @@ class BaseTest(unittest.TestCase):
                       'Test Boolean 2',\
                       'BOOL',\
                       'Read/Write',\
-                      "false")       
+                      "false")   
+        
+    def test_multiple_element_modify(self):
+        """Confirm the correct file is read back when modifying multiple elements before writing""" 
+        program = 'MainProgram' 
+        routine = 'TestFunctionBlockRoutine'  
+        sheet = '1'
+        
+        self.prj.programs[program].description = "Test Modify Multiple Elements"
+        self.prj.programs[program].test_edits = "true"
+        self.prj.schema_revision = "2.3"
+        self.prj.programs[program].routines[routine].sheet_size = "C"
+        newprj = self.write_read_project()  
+        self.assertEqual(newprj.programs[program].description, \
+                         "Test Modify Multiple Elements")
+        self.assertEqual(newprj.programs[program].test_edits, \
+                         "true")
+        self.assertEqual(newprj.schema_revision, \
+                         "2.3")
+        self.assertEqual(newprj.programs[program].routines[routine].sheet_size, \
+                         "C")
+    
+
 
     def test_Write(self):
         """Confirm un-modified file is written to output correctly""" 
@@ -94,6 +116,8 @@ class BaseTest(unittest.TestCase):
         self.assertEqual(tags[tag].description, description)     
         self.assertEqual(tags[tag].external_access, external_access) 
         self.assertEqual(tags[tag].constant, constant) 
+        
+
                
 if __name__ == "__main__": 
     unittest.main()

@@ -15,6 +15,8 @@ from .module import (Module, SafetyNetworkNumber)
 from .tag import Scope
 from .program import Program
 from .errors import InvalidFile
+from .datatypes import DataType
+from .addoninstructions import AddOns
 import xml.dom.minidom
 import xml.parsers.expat
 
@@ -52,6 +54,12 @@ class Project(ElementAccess):
         
         _controller = self.get_child_element('Controller')        
         self.controller = Controller(_controller)
+
+        _datatypes = self.controller.get_child_element('DataTypes')
+        self.datatypes = ElementDict(_datatypes, key_attr='Name', types=DataType) 
+        
+        _addoninstructions = self.controller.get_child_element('AddOnInstructionDefinitions')
+        self.datatypes = ElementDict(_addoninstructions, key_attr='Name', types=AddOns) 
         
         _programs = self.controller.get_child_element('Programs')
         self.programs = ElementDict(_programs, key_attr='Name', types=Program) 
