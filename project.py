@@ -21,10 +21,23 @@ import xml.parsers.expat
 class Project(ElementAccess):
     """Top-level container for an entire Logix project.
         
-    :param filename: File to be parsed in the l5x structure    
+    :param filename: File to be parsed in the l5x structure 
+    :var schema_revision: :class:`.dom.AttributeDescriptor` The L5X schema revision that was used to write the file.
+    :var target_name: :class:`.dom.AttributeDescriptor` The name of the controller from which the L5x was created, if *target_type* = *Controller*.
+    :var target_type: :class:`.dom.AttributeDescriptor` The type of export this file is. *Controller*
+    :var contains_context: :class:`.dom.AttributeDescriptor` 
+    :var owner: :class:`.dom.AttributeDescriptor` The author/owner of the program.
+    :var export_options: :class:`.dom.AttributeDescriptor` Options for what to include in the export. Options available are:- Decorated Data, ForceProtectedEncoding, AllProjDocTrans
     :var programs: :class:`.dom.ElementDict` Dictionary for all programs and their routines
-    :var controller: :class`Controller` Container for PLC specific information such as type, serial number, etc..
+    :var controller: :class:`Controller` Container for PLC specific information such as type, serial number, etc..
     :var modules: :class:`.dom.ElementDict` Dictionary for Hardware modules and layout"""
+    schema_revision = AttributeDescriptor('SchemaRevision')
+    target_name = AttributeDescriptor('TargetName')
+    target_type = AttributeDescriptor('TargetType')
+    contains_context = AttributeDescriptor('ContainsContext')
+    owner = AttributeDescriptor('Owner')
+    export_options = AttributeDescriptor('ExportOptions')
+   
     def __init__(self, filename):
         try:
             _doc = xml.dom.minidom.parse(filename)
@@ -41,10 +54,10 @@ class Project(ElementAccess):
         self.controller = Controller(_controller)
         
         _programs = self.controller.get_child_element('Programs')
-        self.programs = ElementDict(_programs, 'Name', Program) 
+        self.programs = ElementDict(_programs, key_attr='Name', types=Program) 
       
         _modules = self.controller.get_child_element('Modules')
-        self.modules = ElementDict(_modules, 'Name', Module)
+        self.modules = ElementDict(_modules, key_attr='Name', types=Module)
 
     def write(self, filename):
         """Writes the l5x structure to a file
@@ -133,9 +146,13 @@ class MajorRev(AttributeDescriptor):
             raise AttributeError('Attribute is read-only')
         new_value = self.to_xml(value)
         if new_value is not None:
-            instance.element.setAttribute(self.name, new_value)        
+            instance.element.setAttribute(self.name, new_value) 
+            #Write the major revision to the controller specified in the hardware list       
             modules = instance.get_child_element('Modules')            
             modules.getElementsByTagName('Module')[0].setAttribute('Major', new_value)
+            #Write the major revision to the RSLogix5000 element.
+            _rslogix = instance.element.parentNode.getAttribute("SoftwareRevision")
+            instance.element.parentNode.setAttribute("SoftwareRevision", value + _rslogix[2:])
         else:
             raise AttributeError('Cannot remove MajorRev attribute')      
 
@@ -157,9 +174,13 @@ class MinorRev(AttributeDescriptor):
             raise AttributeError('Attribute is read-only')
         new_value = self.to_xml(value)
         if new_value is not None:
-            instance.element.setAttribute(self.name, new_value)        
+            instance.element.setAttribute(self.name, new_value)
+            #Write the minor revision to the controller specified in the hardware list           
             modules = instance.get_child_element('Modules')            
             modules.getElementsByTagName('Module')[0].setAttribute('Minor', new_value)
+            #Write the minor revision to the RSLogix5000 element.
+            _rslogix = instance.element.parentNode.getAttribute("SoftwareRevision")
+            instance.element.parentNode.setAttribute("SoftwareRevision", _rslogix[:3] + value)
         else:
             raise AttributeError('Cannot remove MinorRev attribute')   
 
@@ -185,8 +206,12 @@ class Controller(Scope):
     :var match_project_to_controller: :class:`.dom.AttributeDescriptor`  Boolean to indicate the project can only be downloaded to the serial number specified with `match_project_to_controller`
     :var can_use_rpi_from_producer: :class:`.dom.AttributeDescriptor` Allow a tag producer to specify the RPI to be used. Normally the consumer specifies this.
     :var inhibit_automatic_firmware_update: :class:`.dom.AttributeDescriptor` Selection to block the update of the processor firmware
-    :var snn: :class:`ControllerSafetyNetworkNumber` Safety network number used  in safety controllers."""
-
+    :var snn: :class:`ControllerSafetyNetworkNumber` Safety network number used  in safety controllers.
+    :var redundancy_enabled: :class:`.dom.AttributeDescriptor` Enable/Disable the controllers redundancy feature.
+    :var redundancy_keep_test_edits_on_switchover: :class:`.dom.AttributeDescriptor` Enable/Disable the mirroring of test/edits between redundant processors.
+    :var redundancy_io_memory_pad_percentage: :class:`.dom.AttributeDescriptor` Unknown.
+    :var redundancy_datatable_pad_percentage: :class:`.dom.AttributeDescriptor` Unknown.
+    """
     description = ElementDescription()
     comm_path = AttributeDescriptor('CommPath')
     use = AttributeDescriptor('Use') 
@@ -205,6 +230,10 @@ class Controller(Scope):
     can_use_rpi_from_producer = AttributeDescriptor('CanUseRPIFromProducer')
     inhibit_automatic_firmware_update = AttributeDescriptor('InhibitAutomaticFirmwareUpdate') 
     snn = ControllerSafetyNetworkNumber()
+    redundancy_enabled = AttributeDescriptor('Enabled', False, 'RedundancyInfo')
+    redundancy_keep_test_edits_on_switchover = AttributeDescriptor('KeepTestEditsOnSwitchOver', False, 'RedundancyInfo')
+    redundancy_io_memory_pad_percentage = AttributeDescriptor('IOMemoryPadPercentage', False, 'RedundancyInfo')
+    redundancy_datatable_pad_percentage = AttributeDescriptor('DataTablePadPercentage', False, 'RedundancyInfo')
 
     def __init__(self, element):    
         """Executes superclass's initializer with attribute name."""

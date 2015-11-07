@@ -94,16 +94,20 @@ class ElementDescription(object):
 
     Description elements contain a CDATA comment for some type of
     container element, such as a Tag or Module.
+     
+    :param follow: A List of elements which must come before the description element. This is use when creating a description to confirm it is place in the correct order.
+    :param element: XML element associated with this description
+    :param element: If the description isn't contained in an element called Description then use a this element name
     """
-    def __init__(self, follow=[], element='Description'):
+    def __init__(self, follow=[], use_element='Description'):
         """Store a list of elements which must preceed the description."""
         self.follow = follow   
-        self.element = element     
+        self.use_element = use_element     
 
     def __get__(self, instance, owner=None):
         """Returns the current description string."""
         try:
-            element = instance.get_child_element(self.element)
+            element = instance.get_child_element(self.use_element)
         except KeyError:
             return None
         cdata = CDATAElement(element)
@@ -115,7 +119,7 @@ class ElementDescription(object):
         # element if necessary.
         if isinstance(value, str):
             try:
-                element = instance.get_child_element(self.element)
+                element = instance.get_child_element(self.use_element)
             except KeyError:
                 cdata = self.create(instance)
             else:
@@ -126,7 +130,7 @@ class ElementDescription(object):
         # A value of None removes any existing description.
         elif value is None:
             try:
-                element = instance.get_child_element(self.element)
+                element = instance.get_child_element(self.use_element)
             except KeyError:
                 pass
             else:
@@ -138,7 +142,7 @@ class ElementDescription(object):
 
     def create(self, instance):
         """Creates a new Description element."""
-        new = CDATAElement(parent=instance, name=self.element)
+        new = CDATAElement(parent=instance, name=self.use_element)
 
         # Search for any elements listed in the follow attribute.
         follow = None
@@ -164,36 +168,43 @@ class ElementDescription(object):
 
 
 class AttributeDescriptor(object):
-    """Generic descriptor class for accessing an XML element's attribute."""
+    """Generic descriptor class for accessing an XML element's attribute.
+    
+    This relies on the XML element being associated with the element attribute
+    of the instance. The attribute can be read from this element. If however 
+    the attribute belongs to a child of the instances element. Then the element 
+    to use can be defined using the use_element parameter.
+        
+    :param name: The name of the XML attribute to use
+    :param read_only: If enabled disables the ability to write to this attribute.
+    :param use_element: If a child XML element contains the attribute to return then use this element instead"""
     def __init__(self, name, read_only=False, use_element=None):
         self.name = name
         self.read_only = read_only
         self.use_element = use_element
 
-    def __get__(self, instance, owner=None):        
+    def __get__(self, instance, owner=None): 
+        raw = None
+        #If the current element should be used to look for the attribute
         if self.use_element is None:            
             if (instance.element.hasAttribute(self.name)):
-                raw = instance.element.getAttribute(self.name)            
-                return self.from_xml(raw)
-            else:
-                return None            
-        else:
-            try:                
-                _use_element = instance.get_child_element(self.use_element)
-                raw = _use_element.getAttribute(self.name)
-                return self.from_xml(raw)
-            except KeyError:
-                return None
-        
+                raw = instance.element.getAttribute(self.name) 
+        else: # If a child element named *use_elment* should be used.
+            _use_element = instance.get_child_element(self.use_element)
+            if (_use_element.hasAttribute(self.name)):
+                raw = _use_element.getAttribute(self.name)  
+        if raw is not None:      
+            return self.from_xml(raw)
+        return None               
 
     def __set__(self, instance, value):
         if self.read_only is True:
             raise AttributeError('Attribute is read-only')
         new_value = self.to_xml(value)
         if new_value is not None:            
-            if self.use_element is None:                
+            if self.use_element is None:  # is the current element should be used              
                 instance.element.setAttribute(self.name, new_value)   
-            else:                
+            else: #If a child element should be used
                 _use_element = instance.get_child_element(self.use_element)
                 _use_element.setAttribute(self.name, new_value)
  
@@ -246,11 +257,31 @@ class ElementDict(ElementAccess):
     Instead of returning the actual XML element, a member class is
     instantiated and returned which is used to handle access to the child's
     data.
+    
+    :param parent: Parent element that is associated with the dictionary
+    :param key_attr: Attribute to be used as the dictionary key. If this is None then sequential numbers will be used.
+    :param types: A dictionary used to look up the class to be used for a particular key. A single type can be supplied which will always the same type of class.
+    :param type_attr: An attribute can be used to lookup the type of class to return. The value of the attribute will match the key of types.
+    :param dfl_type: If the type cannot be found with the types dictionary, the default type will be returned.
+    :param key_type: In the case where the primary key isn't a string, this is used to define it
+    :param member_args: Additional parameters to pass to the constructor when returning the instance.
+    :param use_tag_filter: Select only the child elements which have the this XML element name.
+    :param tag_filter: Select only the child elements which have this XML element name.
+    :param use_tagname: Use the element name to determine the type of object to return instead of *key_attr*
+    :param attr_filter: select only the child elements that have this attribute
     """
     names = ElementDictNames()
 
-    def __init__(self, parent, key_attr, types=None, type_attr=None, dfl_type=None,
-                 key_type=str, member_args=[], seq_key=False, use_tag_filter=False, tag_filter='', use_tagname=False, use_attr_filter=False):
+    def __init__(self, parent, \
+                 key_attr=None, \
+                 types=None, \
+                 type_attr=None, \
+                 dfl_type=None,
+                 key_type=str, \
+                 member_args=[], \
+                 tag_filter=None, \
+                 use_tagname=False, \
+                 attr_filter=None):
         ElementAccess.__init__(self, parent)
         self.types = types
         self.type_attr = type_attr
@@ -260,22 +291,29 @@ class ElementDict(ElementAccess):
        
         #Used to select elements based on their name
         m_elements = self.child_elements
-        if use_tag_filter or use_attr_filter:
-            member_elements = []
-            for e in m_elements:
-                if use_attr_filter:
-                    if e.hasAttribute(key_attr):
-                        member_elements += [e]
-                else:                    
-                    if e.nodeName == tag_filter:
-                        member_elements += [e]
-        else:
+        
+        #When no optional arguments are used all child elements of current element
+        if tag_filter is None and attr_filter is None:
             member_elements = m_elements
         
-        #Used to create a key sequence if an attribute isn't available
-        if seq_key:
+        #Selects all child elements with tag = *tag_filter* are selected
+        if tag_filter is not None:
+            member_elements = []
+            for e in m_elements:
+                if e.nodeName == tag_filter:
+                        member_elements += [e]
+                        
+        #Selects all child elements that have the attribute *key_attr*            
+        if attr_filter is not None:
+            member_elements = []
+            for e in m_elements:                
+                if e.hasAttribute(key_attr):
+                    member_elements += [e]                            
+        
+        #Generate sequential keys if no attribute key is available
+        if key_attr is None:
             keys = tuple(str(y) for y in range(0,len(member_elements)))
-        else:
+        else: # 
             keys = [key_type(e.getAttribute(key_attr)) for e in member_elements]
         self.members = dict(zip(keys, member_elements))
 
@@ -297,5 +335,5 @@ class ElementDict(ElementAccess):
             elif self.use_tagname:                
                 type_name = element.nodeName
             else:
-                type_name = key
+                type_name = key            
             return self.types.get(type_name, self.dfl_type)(*args)

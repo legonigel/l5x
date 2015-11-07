@@ -12,7 +12,7 @@ class Scope(ElementAccess):
     def __init__(self, element):
         ElementAccess.__init__(self, element)
         tag_element = self.get_child_element('Tags')
-        self.tags = ElementDict(tag_element, 'Name', Tag)
+        self.tags = ElementDict(tag_element, key_attr='Name', types=Tag)
 
 
 class TagDataDescriptor(object):
@@ -446,8 +446,8 @@ class Structure(Data):
         if element.tagName == 'Element':
             self.element = self.get_child_element('Structure')
 
-        self.members = ElementDict(self.element, 'Name', base_data_types,
-                                   'DataType', Structure,
+        self.members = ElementDict(self.element, key_attr='Name', types=base_data_types,
+                                   dfl_type='DataType', key_type=Structure,
                                    member_args=[tag, self])
 
     def __getitem__(self, member):
@@ -514,7 +514,7 @@ class Array(Data):
                      element.getAttribute('Dimensions').split(',')]
         self.dims.reverse()
         self.address = address
-        self.members = ElementDict(element, 'Index', data_class,
+        self.members = ElementDict(element, key_attr='Index', types=data_class,
                                    member_args=[tag, self])
 
     def __getitem__(self, index):

@@ -9,12 +9,12 @@ from .dom import (ElementAccess, ElementDict, AttributeDescriptor,
 import ctypes
 from .tag import Tag
 
-class fbdObject(ElementAccess):
+class FBD_Object(ElementAccess):
     """Abstract class for fbdObjects"""
     x = AttributeDescriptor('X', True)   
     y = AttributeDescriptor('Y', True) 
    
-class IRef(fbdObject):
+class FBD_IRef(FBD_Object):
     """Base class for a single IRef""" 
     operand = AttributeDescriptor('Operand', True)  
     hide_desc = AttributeDescriptor('HideDesc', True)  
@@ -22,7 +22,7 @@ class IRef(fbdObject):
     def __init__(self, element):
         ElementAccess.__init__(self, element)
 
-class ORef(fbdObject):
+class FBD_ORef(FBD_Object):
     """Base class for a single ORef""" 
     operand = AttributeDescriptor('Operand', True)  
     hide_desc = AttributeDescriptor('HideDesc', True)  
@@ -30,10 +30,16 @@ class ORef(fbdObject):
     def __init__(self, element):
         ElementAccess.__init__(self, element)
         
-class TextBox(fbdObject):
+class FBD_TextBox(FBD_Object):
     """Base class for a single Textbox""" 
     text = ElementDescription([], 'Text')
     width = AttributeDescriptor('Width', True)  
+
+    def __init__(self, element):
+        ElementAccess.__init__(self, element)
+        
+class FBD_Default(FBD_Object):
+    """Default class for any block that can't be found""" 
 
     def __init__(self, element):
         ElementAccess.__init__(self, element)

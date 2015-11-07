@@ -1,8 +1,9 @@
-'''
-Created on 3rd Nov 2015
+"""
+Tests to confirm the FBD portion is performming correctly
 
-@author: hutcheb
-'''
+When naming test cases the following format should be used.
+test_<Module>_<Class>_<Description>
+"""
 import unittest, l5x
 
 class FBDCase(unittest.TestCase):
@@ -13,7 +14,7 @@ class FBDCase(unittest.TestCase):
     def tearDown(self):        
         pass
     
-    def test_Iref(self):
+    def test_net_object_Iref_attributes_present(self):
         """Confirm Iref Nodes are created correctly"""
         program = 'MainProgram'        
         routine = 'TestFunctionBlockRoutine'  
@@ -25,7 +26,7 @@ class FBDCase(unittest.TestCase):
         self.assertEqual(iref.operand, 'boolean1')
         self.assertEqual(iref.hide_desc, 'false')
         
-    def test_Oref(self):
+    def test_net_object_Oref_attributes_present(self):
         """Confirm Oref Nodes are created correctly"""
         program = 'MainProgram'        
         routine = 'TestFunctionBlockRoutine'  
@@ -37,7 +38,7 @@ class FBDCase(unittest.TestCase):
         self.assertEqual(oref.operand, 'boolean2')
         self.assertEqual(oref.hide_desc, 'false')
 
-    def test_TextBox(self):
+    def test_net_object_Textbox_attributes_present(self):
         """Confirm Textbox Nodes are created correctly"""
         program = 'MainProgram'        
         routine = 'TestFunctionBlockRoutine'  
@@ -48,9 +49,9 @@ class FBDCase(unittest.TestCase):
         self.assertEqual(textbox.y, '0')
         self.assertEqual(textbox.text, 'Test Function Block Description On Sheet')
         self.assertEqual(textbox.width, '0')
-        self.assertTrue(type(textbox) is l5x.net_object.TextBox)
+        self.assertTrue(type(textbox) is l5x.net_object.FBD_TextBox)
 
-    def test_Wire(self):
+    def test_net_object_Wire_attributes_present(self):
         """Confirm Wire Nodes are created correctly"""
         program = 'MainProgram'        
         routine = 'TestFunctionBlockRoutine'  
@@ -60,7 +61,7 @@ class FBDCase(unittest.TestCase):
         self.assertEqual(sheet.wire['0'].fromID, '0')
         self.assertEqual(sheet.wire['0'].toID, '1')
 
-    def test_A4SheetSize(self):
+    def test_program_SheetSize_read_write(self):
         """Confirm Sheet Size is written and read correctly"""
         program = 'MainProgram'        
         routine = 'TestFunctionBlockRoutine'  
@@ -75,7 +76,7 @@ class FBDCase(unittest.TestCase):
         self.assertEqual(newprj.programs[program].routines[routine].get_child_element("FBDContent").getAttribute('SheetSize'), \
                          "A4 - 210x297 mm")       
         
-    def test_SheetOrientation(self):
+    def test_program_SheetOrientation_read_write(self):
         """Confirm Sheet Size is written and read correctly"""
         program = 'MainProgram'        
         routine = 'TestFunctionBlockRoutine'  

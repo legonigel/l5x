@@ -32,16 +32,17 @@ class Program(ElementAccess):
         ElementAccess.__init__(self, element)
 
         tag_element = self.get_child_element('Tags')
-        self.tags = ElementDict(tag_element, 'Name', Tag)
+        self.tags = ElementDict(tag_element, key_attr='Name', types=Tag)
         
         routine_element = self.get_child_element('Routines')
         self.routines = ElementDict(routine_element, \
-                                    'Name', \
-                                    {'RLL' : RLLRoutine, \
+                                    key_attr='Name', \
+                                    types={'RLL' : RLLRoutine, \
                                     'FBD' : FBDRoutine, \
                                     'SFC' : SFCRoutine, \
                                     'ST' :  STRoutine,} \
-                                    ,type_attr="Type")
+                                    ,\
+                                    type_attr="Type")
                    
 class SheetSize(AttributeDescriptor):
     """Descriptor class for accessing a routines sheet size.
@@ -122,7 +123,7 @@ class RLLRoutine(Routine):
     def __init__(self, element):
         Routine.__init__(self, element)  
         _rung_element = self.get_child_element('RLLContent')
-        self.rungs = ElementDict(_rung_element, 'Number', Rung)
+        self.rungs = ElementDict(_rung_element, key_attr='Number', types=Rung)
 
 class FBDRoutine(Routine):
     """Function Block Routine Container
@@ -141,7 +142,7 @@ class FBDRoutine(Routine):
     def __init__(self, element):
         ElementAccess.__init__(self, element)
         _fbd_content = self.get_child_element('FBDContent')            
-        self.sheets = ElementDict(_fbd_content, 'Number', Sheet)
+        self.sheets = ElementDict(_fbd_content, key_attr='Number', types=Sheet)
 
 class SFCRoutine(Routine):
     """Sequential Function Chart Routine Container
@@ -150,8 +151,13 @@ class SFCRoutine(Routine):
     Sequential Function Chart and Structured Text. Each type of routine has 
     its own structure.
     
-    :param element: XML element to be used."""   
-
+    :param element: XML element to be used.  
+    :var sheet_size: :class:`.SheetSize` Sheets are sized using standard page sizes *Letter*, *Legal*, *Tabloid*, *A*, *B*, *C*, *D*, *E*, *A4*, *A3*, *A2*, *A1*, *A0*
+    :var sheet_orientation: :class:`.dom.AttributeDescriptor` Orientation of sheet. e.g. *Landscape* or *Portrait*
+    """
+    sheet_size = SheetSize('SFCContent')    
+    sheet_orientation = AttributeDescriptor('SheetOrientation', False, 'SFCContent')  
+    
     def __init__(self, element):
         ElementAccess.__init__(self, element)      
 
@@ -165,6 +171,8 @@ class STRoutine(Routine):
     :param element: XML element to be used.""" 
     def __init__(self, element):
         ElementAccess.__init__(self, element)  
+        _line_element = self.get_child_element('STContent')
+        self.lines = ElementDict(_line_element, key_attr='Number', types=Line)
             
 class Rung(ElementAccess):
     """A single rung within a Ladder routine.
@@ -184,8 +192,22 @@ class Rung(ElementAccess):
         ElementAccess.__init__(self, element)        
         self.text = str(CDATAElement(self.get_child_element('Text')))
         
+class Line(ElementAccess):
+    """A single line within a structured text routine.
+     
+    Lines are stored as raw strings from the L5X file
+    
+    :param element: XML element to be used.   
+    :var description: :class:`.dom.ElementDescription` Rung description 
+    :var number: :class:`.dom.AttributeDescriptor` Rung description
+    :var text: Contains the raw l5x text for the rung.    """
+    description = ElementDescription()
+    number = AttributeDescriptor('Number', True)   
 
-
+    def __init__(self, element):
+        ElementAccess.__init__(self, element)        
+        self.text = str(CDATAElement(self.get_child_element('Text')))
+        
 class Sheet(ElementAccess):
     """A single sheet to be contained within a function block routine.
      
@@ -203,18 +225,16 @@ class Sheet(ElementAccess):
         ElementAccess.__init__(self, element)        
 
         self.blocks = ElementDict(element, \
-                            'ID', \
-                            {'IRef' : IRef, \
-                            'ORef' : ORef, \
-                            'TextBox' : TextBox},
+                            key_attr='ID', \
+                            types={'IRef' : FBD_IRef, \
+                            'ORef' : FBD_ORef, \
+                            'TextBox' : FBD_TextBox,
+                            'DefaultType' : FBD_Default},
                             use_tagname= True, \
-                            use_attr_filter = True)
+                            attr_filter = 'ID')
         
         self.wire = ElementDict(self.element, \
-                                '', \
-                                Wire, \
-                                seq_key=True, \
-                                use_tag_filter=True, \
+                                types=Wire, \
                                 tag_filter="Wire")
 
      
