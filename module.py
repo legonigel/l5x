@@ -61,7 +61,6 @@ class Module(ElementAccess):
         ports_element = self.get_child_element('Ports')
         self.ports = ElementDict(ports_element, key_attr='Id', types=Port, key_type=int)
 
-
 class Port(ElementAccess):
     """Accessor object for a module's port."""
     address = AttributeDescriptor('Address')

@@ -34,24 +34,40 @@ class Project(ElementAccess):
     :var controller: :class:`Controller` Container for PLC specific information such as type, serial number, etc..
     :var modules: :class:`.dom.ElementDict` Dictionary for Hardware modules and layout"""
     schema_revision = AttributeDescriptor('SchemaRevision')
-    target_name = AttributeDescriptor('TargetName')
     target_type = AttributeDescriptor('TargetType')
     contains_context = AttributeDescriptor('ContainsContext')
     owner = AttributeDescriptor('Owner')
-    export_options = AttributeDescriptor('ExportOptions')
+    export_options = AttributeDescriptor('ExportOptions')  
    
-    def __init__(self, filename):
-        try:
-            _doc = xml.dom.minidom.parse(filename)
-        except xml.parsers.expat.ExpatError as e:
-            _msg = xml.parsers.expat.ErrorString(e.code)
-            raise InvalidFile("XML parsing error: {0}".format(_msg))
-
-        if _doc.documentElement.tagName != 'RSLogix5000Content':
-            raise InvalidFile('Not an L5X file.')
-
-        ElementAccess.__init__(self, _doc.documentElement)
+    def __init__(self, filename=None):
+        if filename is not None:
+            try:
+                _doc = xml.dom.minidom.parse(filename)
+            except xml.parsers.expat.ExpatError as e:
+                _msg = xml.parsers.expat.ErrorString(e.code)
+                raise InvalidFile("XML parsing error: {0}".format(_msg))
         
+            if _doc.documentElement.tagName != 'RSLogix5000Content':
+                raise InvalidFile('Not an L5X file.')            
+            
+            ElementAccess.__init__(self, _doc.documentElement)
+                        
+        else:
+            _doc = xml.dom.minidom.parseString('<RSLogix5000Content \
+                          SchemaRevision="1.0" \
+                          SoftwareRevision = "" \
+                          TargetName = "" \
+                          TargetType = "Controller" \
+                          ContainsContext = "false" \
+                          Owner = "Default" \
+                          ExportDate = "Mon Nov 02 04:15:51 2015" \
+                          ExportOptions = "DecoratedData ForceProtectedEncoding AllProjDocTrans"></RSLogix5000Content>')
+            ElementAccess.__init__(self, _doc.documentElement)
+
+            self._create_controller()            
+            self._create_programs()
+            
+            
         _controller = self.get_child_element('Controller')        
         self.controller = Controller(_controller)
 
@@ -59,20 +75,131 @@ class Project(ElementAccess):
         self.datatypes = ElementDict(_datatypes, key_attr='Name', types=DataType) 
         
         _addoninstructions = self.controller.get_child_element('AddOnInstructionDefinitions')
-        self.datatypes = ElementDict(_addoninstructions, key_attr='Name', types=AddOns) 
+        self.addons = ElementDict(_addoninstructions, key_attr='Name', types=AddOns) 
         
         _programs = self.controller.get_child_element('Programs')
         self.programs = ElementDict(_programs, key_attr='Name', types=Program) 
       
         _modules = self.controller.get_child_element('Modules')
         self.modules = ElementDict(_modules, key_attr='Name', types=Module)
+        if filename is None:
+            self._create_local_module()
+            self.create_program('MainProgram')
+                   
+    def _create_controller(self):
+        element = self.create_element('Controller', {'Use' : 'Target',\
+                                                                  'Name' : '',\
+                                                                  'ProcessorType' : '',\
+                                                                  'MajorRev' : '',\
+                                                                  'MinorRev' : '',\
+                                                                  'TimeSlice' : '20',\
+                                                                  'ShareUnusedTimeSlice' : '1',\
+                                                                  'ProjectCreationDate' : '',\
+                                                                  'LastModifiedDate' : '',\
+                                                                  'SFCExecutionControl' : 'CurrentActive',\
+                                                                  'SFCRestartPosition' : 'MostRecent',\
+                                                                  'SFCLastScan' : 'DontScan',\
+                                                                  'ProjectSN' : '16#0000_0000',\
+                                                                  'MatchProjectToController' : 'false'})        
+        self.element.appendChild(element)
+        self._create_datatypes()
+        self._create_modules()
+        self._create_addons()        
+        self.controller = Controller(element, create_tags=True)  
 
+    def _create_datatypes(self):
+        element = self.create_element('DataTypes')        
+        self.element.getElementsByTagName('Controller')[0].appendChild(element)
+        
+    def _create_addons(self):
+        element = self.create_element('AddOnInstructionDefinitions')        
+        self.element.getElementsByTagName('Controller')[0].appendChild(element)
+
+    def _create_programs(self):
+        element = self.create_element('Programs')        
+        self.controller.element.appendChild(element) 
+
+    def _create_modules(self):
+        element = self.create_element('Modules')        
+        self.element.getElementsByTagName('Controller')[0].appendChild(element) 
+                
+    def _create_local_module(self):
+        #create xml structure
+        element = self.create_element('Module', {'CatalogNumber' : '',
+                                                 'Inhibited' : 'false',
+                                                 'Major' : '',
+                                                 'MajorFault' : 'true',
+                                                 'Minor' : '',
+                                                 'Name' : 'Local',
+                                                 'ParentModPortId' : '1',
+                                                 'ParentModule' : 'Local',
+                                                 'ProductCode' : '96',
+                                                 'ProductType' : '14',
+                                                 'Vendor' : '1'}) 
+           
+        ekey = self.create_element('EKey', {'State' : 'ExactMatch'})         
+        ports = self.create_element('Ports') 
+        port = self.create_element('Port', {'Address' : '',\
+                                            'Id' : '1',
+                                            'Type' : 'ICP',
+                                            'Upstream' : 'false'}) 
+        bus = self.create_element('Bus', {'Size' : '10'})
+        port.appendChild(bus)
+        ports.appendChild(port)
+        element.appendChild(ekey)
+        element.appendChild(ports)
+        #append module to the xml structure
+        self.controller.element.getElementsByTagName("Modules")[0].appendChild(element)
+        #Add Module to modules dictionary
+        self.modules.append('Local', element)    
+        
+    def create_program(self, name, ):
+        element = self.create_element('Program', {'Disabled' : 'false',
+                                                 'MainRoutineName' : 'MainRoutine',
+                                                 'Name' : name,
+                                                 'TestEdits' : 'true'}) 
+        self._create_tags(element)  
+        self._create_routines(element)
+        routine = self.create_element('Routine', {'Name' : 'MainRoutine',
+                                                  'Type' : 'RLL'})
+        self._create_RLLContent(routine)
+        element.getElementsByTagName('Routines')[0].appendChild(routine)
+        
+        self._create_rungs(routine.getElementsByTagName('RLLContent')[0])
+        
+        rungs = routine.getElementsByTagName('RLLContent')[0].getElementsByTagName('Rungs')[0]
+        rung = self.create_element('Rung', {'Number' : '0',
+                                         'Type' : 'N'}) 
+        rungs.appendChild(rung)
+        text = self.create_element('Text') 
+        rung.appendChild(text)
+
+        self.controller.element.getElementsByTagName("Programs")[0].appendChild(element)
+                #Add Module to modules dictionary
+        self.modules.append(name, element)   
+        
+    def _create_routines(self, element):
+        tags = self.create_element('Routines')
+        element.appendChild(tags)
+    
+    def _create_RLLContent(self, element):
+        tags = self.create_element('RLLContent')
+        element.appendChild(tags)
+
+    def _create_tags(self, element):
+        tags = self.create_element('Tags')
+        element.appendChild(tags)
+
+    def _create_rungs(self, element):
+        tags = self.create_element('Rungs')
+        element.appendChild(tags)
+        
     def write(self, filename):
         """Writes the l5x structure to a file
         
         :param filename: path to output file"""
         file = open(filename, 'w')
-        self.doc.writexml(file, encoding='UTF-8')
+        self.doc.writexml(file, addindent="   ", newl="\n", encoding='UTF-8')
         file.close()
 
 
@@ -136,6 +263,29 @@ class ProcessorType(AttributeDescriptor):
         else:
             raise AttributeError('Cannot remove ProcessorType attribute')  
    
+class TargetName(AttributeDescriptor):
+    """Descriptor class for accessing a controller name."""
+             
+    def __init__(self):
+        """Helps make it easier when the revision needs to be changed
+        by modifying the underlying XML elements. It is stored in two places project.controller
+        as well as the XML element for project.module['Local']"""  
+        self._child_elements = ChildElements() 
+        """Executes superclass's initializer with attribute name."""
+        super(TargetName, self).__init__('Name')
+  
+    def __set__(self, instance, value):        
+        if self.read_only is True:
+            raise AttributeError('Attribute is read-only')
+        new_value = self.to_xml(value)
+        if new_value is not None:
+            instance.element.setAttribute(self.name, new_value) 
+            #Write the major revision to the controller specified in the hardware list   
+            instance.element.parentNode.setAttribute('TargetName', new_value)
+        else:
+            raise AttributeError('Cannot remove TargetName attribute')      
+
+
 class MajorRev(AttributeDescriptor):
     """Descriptor class for accessing a controller's major revision.
 
@@ -160,7 +310,7 @@ class MajorRev(AttributeDescriptor):
             modules.getElementsByTagName('Module')[0].setAttribute('Major', new_value)
             #Write the major revision to the RSLogix5000 element.
             _rslogix = instance.element.parentNode.getAttribute("SoftwareRevision")
-            instance.element.parentNode.setAttribute("SoftwareRevision", value + _rslogix[2:])
+            instance.element.parentNode.setAttribute("SoftwareRevision", value + "." + _rslogix[3:])
         else:
             raise AttributeError('Cannot remove MajorRev attribute')      
 
@@ -188,9 +338,44 @@ class MinorRev(AttributeDescriptor):
             modules.getElementsByTagName('Module')[0].setAttribute('Minor', new_value)
             #Write the minor revision to the RSLogix5000 element.
             _rslogix = instance.element.parentNode.getAttribute("SoftwareRevision")
-            instance.element.parentNode.setAttribute("SoftwareRevision", _rslogix[:3] + value)
+            instance.element.parentNode.setAttribute("SoftwareRevision", _rslogix[:2] + "." + value)
         else:
             raise AttributeError('Cannot remove MinorRev attribute')   
+        
+class Slot(AttributeDescriptor):
+    """Descriptor class for accessing a slot number."""
+   
+    def __init__(self):
+        """Helps make it easier when the slot needs to be changed
+        by modifying the underlying XML elements. It is stored in two places project.controller
+        as well as the XML element for project.module['Local'].Ports.Port"""  
+        self._child_elements = ChildElements() 
+        """Executes superclass's initializer with attribute name."""
+        super(Slot, self).__init__('Slot')
+  
+    def __get__(self, instance, value):   
+        raw = None                
+        modules = instance.get_child_element('Modules')            
+        module = modules.getElementsByTagName('Module')[0]
+        ports = module.getElementsByTagName('Ports')[0]
+        if (ports.getElementsByTagName('Port')[0].hasAttribute(self.name)):
+                raw = ports.getElementsByTagName('Port')[0].getAttribute('Address') 
+        if raw is not None:      
+            return self.from_xml(raw)
+        return None 
+   
+    def __set__(self, instance, value):        
+        if self.read_only is True:
+            raise AttributeError('Attribute is read-only')
+        new_value = self.to_xml(value)
+        if new_value is not None:
+            #Write the slot number to the controller specified in the hardware list           
+            modules = instance.get_child_element('Modules')            
+            module = modules.getElementsByTagName('Module')[0]
+            ports = module.getElementsByTagName('Ports')[0]
+            ports.getElementsByTagName('Port')[0].setAttribute('Address', new_value)
+        else:
+            raise AttributeError('Cannot remove MinorRev attribute')  
 
 class Controller(Scope):
     """Container class to store controller specific settings
@@ -242,8 +427,9 @@ class Controller(Scope):
     redundancy_keep_test_edits_on_switchover = AttributeDescriptor('KeepTestEditsOnSwitchOver', False, 'RedundancyInfo')
     redundancy_io_memory_pad_percentage = AttributeDescriptor('IOMemoryPadPercentage', False, 'RedundancyInfo')
     redundancy_datatable_pad_percentage = AttributeDescriptor('DataTablePadPercentage', False, 'RedundancyInfo')
+    target_name = TargetName()    
+    slot = Slot()
 
-    def __init__(self, element):    
-        """Executes superclass's initializer with attribute name."""
-        Scope.__init__(self, element)
-    
+    def __init__(self, element, create_tags=False):
+        """Executes superclass's initializer with attribute name."""        
+        Scope.__init__(self, element, create_tags)   

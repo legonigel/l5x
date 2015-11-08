@@ -337,3 +337,6 @@ class ElementDict(ElementAccess):
             else:
                 type_name = key            
             return self.types.get(type_name, self.dfl_type)(*args)
+    
+    def append(self, key, value):
+        self.members[key] = value

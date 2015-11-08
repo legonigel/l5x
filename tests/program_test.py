@@ -24,15 +24,6 @@ class ProgramCase(common_testing.DefaultCase):
         self.assertEqual(newprj.schema_revision, \
                          '1.1')   
 
-    def test_Project_target_name(self):
-        """Test set and get controller target name attribute"""
-        self.assertEqual(self.prj.target_name, \
-                         'basetest')
-        self.prj.target_name = 'new_controller_name'
-        newprj = self.write_read_project()        
-        self.assertEqual(newprj.target_name , \
-                         'new_controller_name')  
-
     def test_Project_target_type(self):
         """Test set and get controller target type attribute"""
         self.assertEqual(self.prj.target_type, \
