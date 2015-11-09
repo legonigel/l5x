@@ -9,16 +9,10 @@ import ctypes
 
 class Scope(ElementAccess):
     """Container to hold a group of tags within a specific scope."""
-    def __init__(self, element, create_tags=False):
+    def __init__(self, element):
         ElementAccess.__init__(self, element)
-        if create_tags:
-            self._create_tags(element)
         tag_element = self.get_child_element('Tags')
         self.tags = ElementDict(tag_element, key_attr='Name', types=Tag)
-
-    def _create_tags(self, element):
-        tags = self.create_element('Tags')
-        element.appendChild(tags)
 
 class TagDataDescriptor(object):
     """Descriptor class to dispatch attribute access to a data object.

@@ -43,6 +43,25 @@ class Program(ElementAccess):
                                     'ST' :  STRoutine,} \
                                     ,\
                                     type_attr="Type")
+    @classmethod
+    def create(cls, prj, name):
+        programs = prj.controller.element.getElementsByTagName('Programs')[0]
+        element = prj._create_append_element(programs, \
+                                             'Program', \
+                                             {'Disabled' : 'false',
+                                             'MainRoutineName' : 'MainRoutine',
+                                             'Name' : name,
+                                             'TestEdits' : 'true'}) 
+        prj._create_append_element(element, 'Tags')  
+        prj._create_append_element(element, 'Routines') 
+        program = Program(element)
+        
+        routine = Routine.create(program, 'MainRoutine')
+        program.routines.append('MainRoutine', routine)
+        
+        return program
+                 
+            
                    
 class SheetSize(AttributeDescriptor):
     """Descriptor class for accessing a routines sheet size.
@@ -109,6 +128,19 @@ class Routine(ElementAccess):
     type = AttributeDescriptor('Type', False) 
     def __init__(self, element):
         ElementAccess.__init__(self, element)  
+        
+    @classmethod
+    def create(cls, program, name):
+        routines = program.element.getElementsByTagName('Routines')[0]
+        element = program._create_append_element(routines, \
+                                             'Routine', {'Name' : 'MainRoutine',
+                                                  'Type' : 'RLL'})
+        rll_content = program._create_append_element(element, 'RLLContent')  
+        program._create_append_element(rll_content, 'Rungs')
+        
+        routine = Routine(element)
+        
+        return routine
         
 
 class RLLRoutine(Routine):

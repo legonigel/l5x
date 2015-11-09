@@ -61,6 +61,37 @@ class Module(ElementAccess):
         ports_element = self.get_child_element('Ports')
         self.ports = ElementDict(ports_element, key_attr='Id', types=Port, key_type=int)
 
+    @classmethod
+    def createController(cls, prj):
+        element = prj._create_append_element(prj.element, 'Module', {'CatalogNumber' : '',
+                                                 'Inhibited' : 'false',
+                                                 'Major' : '',
+                                                 'MajorFault' : 'true',
+                                                 'Minor' : '',
+                                                 'Name' : 'Local',
+                                                 'ParentModPortId' : '1',
+                                                 'ParentModule' : 'Local',
+                                                 'ProductCode' : '96',
+                                                 'ProductType' : '14',
+                                                 'Vendor' : '1'})      
+        ekey = prj._create_append_element(prj.element, 'EKey', {'State' : 'ExactMatch'})    
+        ports = prj._create_append_element(prj.element, 'Ports') 
+        port = prj._create_append_element(prj.element, 'Port', {'Address' : '',\
+                                            'Id' : '1',
+                                            'Type' : 'ICP',
+                                            'Upstream' : 'false'}) 
+        bus = prj._create_append_element(prj.element, 'Bus', {'Size' : '10'})
+        port.appendChild(bus)
+        ports.appendChild(port)
+        element.appendChild(ekey)
+        element.appendChild(ports)
+        
+        #append module to the xml structure
+        prj.controller.element.getElementsByTagName("Modules")[0].appendChild(element)
+        #Add Module to modules dictionary
+        prj.modules.append('Local', element)  
+        
+
 class Port(ElementAccess):
     """Accessor object for a module's port."""
     address = AttributeDescriptor('Address')

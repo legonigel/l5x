@@ -51,7 +51,9 @@ class Project(ElementAccess):
                 raise InvalidFile('Not an L5X file.')            
             
             ElementAccess.__init__(self, _doc.documentElement)
-                        
+            
+            _controller = self.get_child_element('Controller')        
+            self.controller = Controller(_controller)
         else:
             _doc = xml.dom.minidom.parseString('<RSLogix5000Content \
                           SchemaRevision="1.0" \
@@ -64,13 +66,8 @@ class Project(ElementAccess):
                           ExportOptions = "DecoratedData ForceProtectedEncoding AllProjDocTrans"></RSLogix5000Content>')
             ElementAccess.__init__(self, _doc.documentElement)
 
-            self._create_controller()            
-            self._create_programs()
+            Controller.create(self)
             
-            
-        _controller = self.get_child_element('Controller')        
-        self.controller = Controller(_controller)
-
         _datatypes = self.controller.get_child_element('DataTypes')
         self.datatypes = ElementDict(_datatypes, key_attr='Name', types=DataType) 
         
@@ -82,118 +79,12 @@ class Project(ElementAccess):
       
         _modules = self.controller.get_child_element('Modules')
         self.modules = ElementDict(_modules, key_attr='Name', types=Module)
+            
         if filename is None:
-            self._create_local_module()
-            self.create_program('MainProgram')
-                   
-    def _create_controller(self):
-        element = self.create_element('Controller', {'Use' : 'Target',\
-                                                                  'Name' : '',\
-                                                                  'ProcessorType' : '',\
-                                                                  'MajorRev' : '',\
-                                                                  'MinorRev' : '',\
-                                                                  'TimeSlice' : '20',\
-                                                                  'ShareUnusedTimeSlice' : '1',\
-                                                                  'ProjectCreationDate' : '',\
-                                                                  'LastModifiedDate' : '',\
-                                                                  'SFCExecutionControl' : 'CurrentActive',\
-                                                                  'SFCRestartPosition' : 'MostRecent',\
-                                                                  'SFCLastScan' : 'DontScan',\
-                                                                  'ProjectSN' : '16#0000_0000',\
-                                                                  'MatchProjectToController' : 'false'})        
-        self.element.appendChild(element)
-        self._create_datatypes()
-        self._create_modules()
-        self._create_addons()        
-        self.controller = Controller(element, create_tags=True)  
-
-    def _create_datatypes(self):
-        element = self.create_element('DataTypes')        
-        self.element.getElementsByTagName('Controller')[0].appendChild(element)
-        
-    def _create_addons(self):
-        element = self.create_element('AddOnInstructionDefinitions')        
-        self.element.getElementsByTagName('Controller')[0].appendChild(element)
-
-    def _create_programs(self):
-        element = self.create_element('Programs')        
-        self.controller.element.appendChild(element) 
-
-    def _create_modules(self):
-        element = self.create_element('Modules')        
-        self.element.getElementsByTagName('Controller')[0].appendChild(element) 
-                
-    def _create_local_module(self):
-        #create xml structure
-        element = self.create_element('Module', {'CatalogNumber' : '',
-                                                 'Inhibited' : 'false',
-                                                 'Major' : '',
-                                                 'MajorFault' : 'true',
-                                                 'Minor' : '',
-                                                 'Name' : 'Local',
-                                                 'ParentModPortId' : '1',
-                                                 'ParentModule' : 'Local',
-                                                 'ProductCode' : '96',
-                                                 'ProductType' : '14',
-                                                 'Vendor' : '1'}) 
-           
-        ekey = self.create_element('EKey', {'State' : 'ExactMatch'})         
-        ports = self.create_element('Ports') 
-        port = self.create_element('Port', {'Address' : '',\
-                                            'Id' : '1',
-                                            'Type' : 'ICP',
-                                            'Upstream' : 'false'}) 
-        bus = self.create_element('Bus', {'Size' : '10'})
-        port.appendChild(bus)
-        ports.appendChild(port)
-        element.appendChild(ekey)
-        element.appendChild(ports)
-        #append module to the xml structure
-        self.controller.element.getElementsByTagName("Modules")[0].appendChild(element)
-        #Add Module to modules dictionary
-        self.modules.append('Local', element)    
-        
-    def create_program(self, name, ):
-        element = self.create_element('Program', {'Disabled' : 'false',
-                                                 'MainRoutineName' : 'MainRoutine',
-                                                 'Name' : name,
-                                                 'TestEdits' : 'true'}) 
-        self._create_tags(element)  
-        self._create_routines(element)
-        routine = self.create_element('Routine', {'Name' : 'MainRoutine',
-                                                  'Type' : 'RLL'})
-        self._create_RLLContent(routine)
-        element.getElementsByTagName('Routines')[0].appendChild(routine)
-        
-        self._create_rungs(routine.getElementsByTagName('RLLContent')[0])
-        
-        rungs = routine.getElementsByTagName('RLLContent')[0].getElementsByTagName('Rungs')[0]
-        rung = self.create_element('Rung', {'Number' : '0',
-                                         'Type' : 'N'}) 
-        rungs.appendChild(rung)
-        text = self.create_element('Text') 
-        rung.appendChild(text)
-
-        self.controller.element.getElementsByTagName("Programs")[0].appendChild(element)
-                #Add Module to modules dictionary
-        self.modules.append(name, element)   
-        
-    def _create_routines(self, element):
-        tags = self.create_element('Routines')
-        element.appendChild(tags)
-    
-    def _create_RLLContent(self, element):
-        tags = self.create_element('RLLContent')
-        element.appendChild(tags)
-
-    def _create_tags(self, element):
-        tags = self.create_element('Tags')
-        element.appendChild(tags)
-
-    def _create_rungs(self, element):
-        tags = self.create_element('Rungs')
-        element.appendChild(tags)
-        
+            Module.createController(self)
+            program = Program.create(self, 'MainProgram')
+            self.programs.append('MainProgram', program)
+              
     def write(self, filename):
         """Writes the l5x structure to a file
         
@@ -430,6 +321,33 @@ class Controller(Scope):
     target_name = TargetName()    
     slot = Slot()
 
-    def __init__(self, element, create_tags=False):
+    def __init__(self, element):
         """Executes superclass's initializer with attribute name."""        
-        Scope.__init__(self, element, create_tags)   
+        Scope.__init__(self, element)   
+        
+    @classmethod
+    def create(cls, prj):
+        element = prj._create_append_element(prj.element, 'Controller', {'Use' : 'Target',\
+                                                                  'Name' : '',\
+                                                                  'ProcessorType' : '',\
+                                                                  'MajorRev' : '',\
+                                                                  'MinorRev' : '',\
+                                                                  'TimeSlice' : '20',\
+                                                                  'ShareUnusedTimeSlice' : '1',\
+                                                                  'ProjectCreationDate' : '',\
+                                                                  'LastModifiedDate' : '',\
+                                                                  'SFCExecutionControl' : 'CurrentActive',\
+                                                                  'SFCRestartPosition' : 'MostRecent',\
+                                                                  'SFCLastScan' : 'DontScan',\
+                                                                  'ProjectSN' : '16#0000_0000',\
+                                                                  'MatchProjectToController' : 'false'})            
+        prj._create_append_element(element, 'DataTypes')
+        prj._create_append_element(element, 'Modules')
+        prj._create_append_element(element, 'AddOnInstructionDefinitions')   
+        prj._create_append_element(element, 'Tags')   
+        prj.controller = Controller(element)     
+        prj._create_append_element(prj.controller.element, 'Programs') 
+        
+
+    
+

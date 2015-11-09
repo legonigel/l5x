@@ -42,6 +42,11 @@ class ElementAccess(object):
             new.setAttribute(attr, attributes[attr])
         return new
 
+    def _create_append_element(self, parent, name, attributes={}):  
+        new = self.create_element(name, attributes) 
+        parent.appendChild(new)        
+        return new
+
     def append_child(self, node):
         """Appends a node to the element's set of children."""
         self.element.appendChild(node)
