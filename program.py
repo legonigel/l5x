@@ -6,7 +6,7 @@ from .dom import (ElementAccess, ElementDict, AttributeDescriptor,
                   ElementDescription, CDATAElement, ChildElements, ElementDictNames)
 from .tag import Tag
 from .net_object import *
-
+from .errors import * 
 import ctypes
 import string
 import xml.dom
@@ -51,12 +51,12 @@ class Program(ElementAccess):
                                              {'Disabled' : 'false',
                                              'MainRoutineName' : 'MainRoutine',
                                              'Name' : name,
-                                             'TestEdits' : 'true'}) 
+                                             'TestEdits' : 'false'}) 
         prj._create_append_element(element, 'Tags')  
         prj._create_append_element(element, 'Routines') 
         program = Program(element)
         
-        routine = Routine.create(program, 'MainRoutine')
+        routine = RLLRoutine.create(program, 'MainRoutine')
         program.routines.append('MainRoutine', routine)
         
         return program
@@ -128,20 +128,7 @@ class Routine(ElementAccess):
     type = AttributeDescriptor('Type', False) 
     def __init__(self, element):
         ElementAccess.__init__(self, element)  
-        
-    @classmethod
-    def create(cls, program, name):
-        routines = program.element.getElementsByTagName('Routines')[0]
-        element = program._create_append_element(routines, \
-                                             'Routine', {'Name' : 'MainRoutine',
-                                                  'Type' : 'RLL'})
-        rll_content = program._create_append_element(element, 'RLLContent')  
-        program._create_append_element(rll_content, 'Rungs')
-        
-        routine = Routine(element)
-        
-        return routine
-        
+       
 
 class RLLRoutine(Routine):
     """Ladder Routine Container
@@ -156,6 +143,19 @@ class RLLRoutine(Routine):
         Routine.__init__(self, element)  
         _rung_element = self.get_child_element('RLLContent')
         self.rungs = ElementDict(_rung_element, key_attr='Number', types=Rung)
+       
+    @classmethod
+    def create(cls, program, name):
+        routines = program.element.getElementsByTagName('Routines')[0]
+        
+        element = program._create_append_element(routines, \
+                                             'Routine', {'Name' : name,
+                                                  'Type' : 'RLL'})
+        program._create_append_element(element, 'RLLContent')  
+        
+        routine = Routine(element)
+        program.routines.append(name, routine.element)
+        return routine
 
 class FBDRoutine(Routine):
     """Function Block Routine Container
@@ -176,6 +176,19 @@ class FBDRoutine(Routine):
         _fbd_content = self.get_child_element('FBDContent')            
         self.sheets = ElementDict(_fbd_content, key_attr='Number', types=Sheet)
 
+    @classmethod
+    def create(cls, program, name):
+        routines = program.element.getElementsByTagName('Routines')[0]        
+        element = program._create_append_element(routines, \
+                                             'Routine', {'Name' : name,
+                                                  'Type' : 'FBD'})
+        program._create_append_element(element, 'FBDContent', {'SheetSize' : 'Letter - 8.5 x 11 in',
+                                                  'SheetOrientation' : 'Landscape'})  
+        
+        routine = Routine(element)
+        program.routines.append(name, routine.element)
+        return routine
+
 class SFCRoutine(Routine):
     """Sequential Function Chart Routine Container
      
@@ -191,7 +204,20 @@ class SFCRoutine(Routine):
     sheet_orientation = AttributeDescriptor('SheetOrientation', False, 'SFCContent')  
     
     def __init__(self, element):
-        ElementAccess.__init__(self, element)      
+        ElementAccess.__init__(self, element)  
+        
+    @classmethod
+    def create(cls, program, name):
+        routines = program.element.getElementsByTagName('Routines')[0]        
+        element = program._create_append_element(routines, \
+                                             'Routine', {'Name' : name,
+                                                  'Type' : 'SFC'})
+        program._create_append_element(element, 'SFCContent', {'SheetSize' : 'A4 - 210 x 297 mm',
+                                                  'SheetOrientation' : 'Landscape'})  
+                
+        routine = Routine(element)
+        program.routines.append(name, routine.element)
+        return routine    
 
 class STRoutine(Routine):
     """Structured Text Routine Container
@@ -205,6 +231,18 @@ class STRoutine(Routine):
         ElementAccess.__init__(self, element)  
         _line_element = self.get_child_element('STContent')
         self.lines = ElementDict(_line_element, key_attr='Number', types=Line)
+        
+    @classmethod
+    def create(cls, program, name):
+        routines = program.element.getElementsByTagName('Routines')[0]        
+        element = program._create_append_element(routines, \
+                                             'Routine', {'Name' : name,
+                                                  'Type' : 'ST'})
+        program._create_append_element(element, 'STContent')  
+        
+        routine = Routine(element)
+        program.routines.append(name, routine.element)
+        return routine    
             
 class Rung(ElementAccess):
     """A single rung within a Ladder routine.
@@ -223,6 +261,29 @@ class Rung(ElementAccess):
     def __init__(self, element):
         ElementAccess.__init__(self, element)        
         self.text = str(CDATAElement(self.get_child_element('Text')))
+
+    @classmethod
+    def create(cls, routine, text, number=None):
+        """Confirms the rung number isn't out of range"""
+        if number is None:
+            number = len(routine.rungs)  
+        else:
+            lastnumber = routine.getLastRungNumber()
+            if not (number >= 0 and number < lastnumber):
+                raise RungNumberOutOfRangeError()
+        """Selects the RLLContent element to add the rung to"""
+        rllcontent = routine.element.getElementsByTagName('RLLContent')[0]        
+        element = routine._create_append_element(rllcontent, \
+                                             'Rung', {'Number' : str(number),
+                                                  'Type' : 'N'})
+        """Create Text Element and add CDATA rung data to it"""
+        cdataText =routine.doc.createCDATASection(text)
+        text_element = routine._create_append_element(element, 'Text') 
+        text_element.appendChild(cdataText)
+                
+        rung = Rung(element)       
+        routine.rungs.append(str(number), rung.element)
+        return rung  
         
 class Line(ElementAccess):
     """A single line within a structured text routine.
@@ -265,8 +326,23 @@ class Sheet(ElementAccess):
                             use_tagname= True, \
                             attr_filter = 'ID')
         
-        self.wire = ElementDict(self.element, \
+        self.wires = ElementDict(self.element, \
                                 types=Wire, \
                                 tag_filter="Wire")
 
+    @classmethod
+    def create(cls, routine, number=None):
+        """Confirms the sheet number isn't out of range"""
+        if number is None:
+            number = len(routine.sheets) + 1
+        else:           
+            if not (number >= 0 and number < len(routine.sheets)):
+                raise SheetNumberOutOfRangeError()
+        """Selects the FBDContent element to add the sheet to"""
+        content = routine.element.getElementsByTagName('FBDContent')[0]        
+        element = routine._create_append_element(content, \
+                                             'Sheet', {'Number' : str(number)})
+        sheet = Sheet(element)       
+        routine.sheets.append(str(number), sheet.element)
+        return sheet  
      

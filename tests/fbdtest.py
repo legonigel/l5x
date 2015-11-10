@@ -58,8 +58,8 @@ class FBDCase(unittest.TestCase):
         sheet = '1'
      
         sheet = self.prj.programs[program].routines[routine].sheets[sheet]
-        self.assertEqual(sheet.wire['0'].fromID, '0')
-        self.assertEqual(sheet.wire['0'].toID, '1')
+        self.assertEqual(sheet.wires['0'].fromID, '0')
+        self.assertEqual(sheet.wires['0'].toID, '1')
 
     def test_program_SheetSize_read_write(self):
         """Confirm Sheet Size is written and read correctly"""

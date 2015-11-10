@@ -117,6 +117,28 @@ class Tag(ElementAccess):
                 data.unlink()
                 break
 
+    @classmethod
+    def create(cls, scope, tagname, datatype, value, description=""):
+
+        """Selects the Tags element to add the rung to"""
+        tag_element = scope.element.getElementsByTagName('Tags')[0]        
+        element = scope._create_append_element(tag_element, 'Tag', {'Name' : tagname,
+                                                  'TagType' : 'Base',
+                                                  'DataType' : datatype,
+                                                  'Radix' : 'Decimal',
+                                                  'Constant' : 'false',
+                                                  'ExternalAccess' : 'Read/Write'})
+        data = scope._create_append_element(element, 'Data', {'Format' : 'Decorated'}) 
+        scope._create_append_element(data, 'DataValue', {'DataType' : datatype, \
+                                                                'Radix' : 'Decimal', \
+                                                                'Value' : str(value)}) 
+        tag = Tag(element)
+        tag.description = description
+        scope.tags.append(tagname, tag.element)
+        return tag  
+    
+
+    
 
 class Comment(object):
     """Descriptor class for accessing descriptions of individual tag members.

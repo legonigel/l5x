@@ -83,14 +83,14 @@ class Project(ElementAccess):
         if filename is None:
             Module.createController(self)
             program = Program.create(self, 'MainProgram')
-            self.programs.append('MainProgram', program)
+            self.programs.append('MainProgram', program.element)
               
     def write(self, filename):
         """Writes the l5x structure to a file
         
         :param filename: path to output file"""
         file = open(filename, 'w')
-        self.doc.writexml(file, addindent="   ", newl="\n", encoding='UTF-8')
+        self.doc.writexml(file, addindent="", newl="\n", encoding='UTF-8')
         file.close()
 
 
@@ -341,6 +341,15 @@ class Controller(Scope):
                                                                   'SFCLastScan' : 'DontScan',\
                                                                   'ProjectSN' : '16#0000_0000',\
                                                                   'MatchProjectToController' : 'false'})            
+        prj._create_append_element(element, 'RedundancyInfo', {'Enabled' : 'false', \
+                                                               'KeepTestEditsOnSwitchOver' : 'false',
+                                                               'IOMemoryPadPercentage' : '90',
+                                                               'DataTablePadPercentage' : '50'})
+        prj._create_append_element(element, 'Security', {'Code' : '0', \
+                                                               'ChangesToDetect' : '16#ffff_ffff_ffff_ffff',
+                                                               'IOMemoryPadPercentage' : '90',
+                                                               'DataTablePadPercentage' : '50'})
+        prj._create_append_element(element, 'SafetyInfo')
         prj._create_append_element(element, 'DataTypes')
         prj._create_append_element(element, 'Modules')
         prj._create_append_element(element, 'AddOnInstructionDefinitions')   

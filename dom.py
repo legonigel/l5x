@@ -23,7 +23,7 @@ class ElementAccess(object):
     def get_doc(self):
         """Extracts a reference to the top-level XML document."""
         node = self.element
-        while node.parentNode != None:
+        while node.parentNode != None:            
             node = node.parentNode
         self.doc = node
 
@@ -107,7 +107,7 @@ class ElementDescription(object):
     def __init__(self, follow=[], use_element='Description'):
         """Store a list of elements which must preceed the description."""
         self.follow = follow   
-        self.use_element = use_element     
+        self.use_element = use_element
 
     def __get__(self, instance, owner=None):
         """Returns the current description string."""
@@ -164,6 +164,7 @@ class ElementDescription(object):
         # element after the last one found. DOM node operations do not
         # provide an append-after method so an insert-remove-insert
         # procedure is used.
+        #Possibly is causing white space after CDATA element.
         else:
             instance.element.insertBefore(new.element, follow)
             instance.element.removeChild(follow)
@@ -342,6 +343,15 @@ class ElementDict(ElementAccess):
             else:
                 type_name = key            
             return self.types.get(type_name, self.dfl_type)(*args)
+
+    def __len__(self):
+        count = 0
+        for member in self.members:
+            count += 1
+        return count
     
     def append(self, key, value):
         self.members[key] = value
+        
+    def __iter__(self):        
+        return iter(self.members)
