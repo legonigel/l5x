@@ -19,6 +19,7 @@ from .datatypes import DataType
 from .addoninstructions import AddOns
 import xml.dom.minidom
 import xml.parsers.expat
+import codecs
 
 class Project(ElementAccess):
     """Top-level container for an entire Logix project.
@@ -89,7 +90,7 @@ class Project(ElementAccess):
         """Writes the l5x structure to a file
         
         :param filename: path to output file"""
-        file = open(filename, 'w')
+        file = codecs.open(filename, 'w', 'utf-8')
         self.doc.writexml(file, addindent="", newl="\n", encoding='UTF-8')
         file.close()
 
