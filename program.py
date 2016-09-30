@@ -81,7 +81,7 @@ class SheetSize(AttributeDescriptor):
         """Strips the measurements from the size description
         
         :param value: string with the size and measurement of the sheet. e.g. *Letter - 8.5 x 14 in*"""
-        return str(value).split(maxsplit=2)[0]
+        return str(value).split(None, 2)[0]
 
     def to_xml(self, value):
         """Adds the measurement description when writing the l5x file.
