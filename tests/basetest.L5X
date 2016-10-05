@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="20.01" TargetName="basetest" TargetType="Controller" ContainsContext="false" Owner="Default" ExportDate="Mon Nov 02 04:15:51 2015" ExportOptions="DecoratedData ForceProtectedEncoding AllProjDocTrans">
 <Controller Use="Target" Name="basetest" ProcessorType="1756-L75" MajorRev="20" MinorRev="11" TimeSlice="20" ShareUnusedTimeSlice="1" ProjectCreationDate="Mon Nov 02 00:20:40 2015" LastModifiedDate="Mon Nov 02 04:15:10 2015" SFCExecutionControl="CurrentActive" SFCRestartPosition="MostRecent"
  SFCLastScan="DontScan" ProjectSN="16#0000_0000" MatchProjectToController="false" CanUseRPIFromProducer="false" InhibitAutomaticFirmwareUpdate="0">
@@ -124,6 +124,11 @@
 </Text>
 </Rung>
 <Rung Number="2" Type="N">
+<Comment>
+<![CDATA[Comment with Unicode
+• <- This bullet point is unicode \x2022
+]]>
+</Comment>
 <Text>
 <![CDATA[XIC(boolean1)OTL(boolean2);]]>
 </Text>
