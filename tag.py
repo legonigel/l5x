@@ -4,7 +4,7 @@ Objects implementing tag access.
 
 from .dom import (ElementAccess, ElementDict, AttributeDescriptor,
                   ElementDescription, CDATAElement)
-import ctypes
+import ctypes, re, struct
 
 
 class Scope(ElementAccess):
@@ -68,6 +68,7 @@ class ConsumeDescriptor(object):
 class Tag(ElementAccess):
     """Base class for a single tag."""
     description = ElementDescription(['ConsumeInfo'])
+    tag_type = AttributeDescriptor('TagType', True)
     data_type = AttributeDescriptor('DataType', True)
     value = TagDataDescriptor('value')
     shape = TagDataDescriptor('shape')
@@ -118,25 +119,74 @@ class Tag(ElementAccess):
                 break
 
     @classmethod
-    def create(cls, scope, tagname, datatype, value, description=""):
+    def create(cls, scope, project, tagtype, tagname, datatype, value, description="", radix=None, dimensions=""):
+        """
+        Create a tag within scope
+        :param scope: the scope to create the tag within (Controller, Program)
+        :param project: the project within which this tag is created (used for UDT definitions)
+        :param tagtype: The type of tag ("Base", "Alias")
+        :param tagname: String of the name of the tag
+        :param datatype: String of the datatype of the tag
+        :param value: Value of the tag (type depends on tagtype). Arrays are lists, Structures are dicts, all base values are integers (I think)
+        :param description: Strind description of the tag (optional)
+        :param radix: String of the radix type (see 1756-RM084V-EN-P) (optional)
+        :param dimensions: String of the dimensions of the array. Currently only 1D arrays are supported (optional)
+        """
 
         """Selects the Tags element to add the rung to"""
         tag_element = scope.element.getElementsByTagName('Tags')[0]        
-        element = scope._create_append_element(tag_element, 'Tag', {'Name' : tagname,
-                                                  'TagType' : 'Base',
-                                                  'DataType' : datatype,
-                                                  'Radix' : 'Decimal',
-                                                  'Constant' : 'false',
-                                                  'ExternalAccess' : 'Read/Write'})
-        data = scope._create_append_element(element, 'Data', {'Format' : 'Decorated'}) 
-        scope._create_append_element(data, 'DataValue', {'DataType' : datatype, \
-                                                                'Radix' : 'Decimal', \
-                                                                'Value' : str(value)}) 
+        if tagtype == "Base":
+            if radix is None:
+                radix = "Decimal" #Default to decimal radix for base tags
+
+            attributes = {'Name' : tagname,
+                          'TagType' : tagtype,
+                          'DataType' : datatype,
+                          'Constant' : 'false',
+                          'ExternalAccess' : 'Read/Write'}
+            if datatype in base_data_types:
+                attributes['Radix'] = radix
+
+            if dimensions:
+                #If this is an array
+                attributes['Dimensions'] = dimensions
+
+            element = scope._create_append_element(tag_element, 'Tag', attributes)
+            data = scope._create_append_element(element, 'Data', {'Format' : 'Decorated'})
+
+            if datatype in base_data_types and not dimensions:
+                # Single base data
+                scope._create_append_element(data, 'DataValue', {'DataType' : datatype, \
+                                                             'Radix' : radix, \
+                                                             'Value' : str(value)})
+            elif datatype in base_data_types and dimensions:
+                # Array of base data
+                array = scope._create_append_element(data, 'Array',
+                                                      { 'DataType' : datatype,
+                                                        'Dimensions' : dimensions,
+                                                        'Radix' : radix })
+                for i in range(int(dimensions)):
+                    scope._create_append_element(array, 'Element',
+                                                 {'Index' : "[{}]".format(i),
+                                                  'Value' : str(value[i])})
+
+            elif not dimensions:
+                # Single structure
+                Structure.create_element(scope, project, data, datatype, value)
+                pass
+            else:
+                # Array of Structures
+                array = scope._create_append_element(data, 'Array',
+                                                      { 'DataType' : datatype,
+                                                        'Dimensions' : dimensions})
+                for i in range(int(dimensions)):
+                    scope._create_append_element(array, 'Element',
+                                                 {'Index' : "[{}]".format(i)})
+
         tag = Tag(element)
         tag.description = description
         scope.tags.append(tagname, tag.element)
-        return tag  
-    
+        return tag
 
     
 
@@ -279,13 +329,21 @@ class Data(ElementAccess):
                     sep = self.operand_attributes[attr]
                     name = self.element.getAttribute(attr).upper()
                     break
-                
+
             self.operand = sep.join((self.parent.operand, name))
 
 
 class IntegerValue(object):
     """Descriptor class for accessing an integer's value."""
     def __get__(self, instance, owner=None):
+        if instance.element.getAttribute('Radix') == 'ASCII':
+            value_string = instance.element.getAttribute('Value')
+            value_string = value_string.replace("&apos;","")
+            def logix_string_repl(matchobj):
+                return chr(int(matchobj.group(1)))
+            bytes = re.sub(r'\$(\d\d)', logix_string_repl, value_string)
+            bytes = bytes.rjust(4, chr(0))
+            return struct.unpack(">i", bytes)[0]
         return int(instance.element.getAttribute('Value'))
 
     def __set__(self, instance, value):
@@ -468,7 +526,7 @@ class Structure(Data):
             self.element = self.get_child_element('Structure')
 
         self.members = ElementDict(self.element, key_attr='Name', types=base_data_types,
-                                   dfl_type='DataType', key_type=Structure,
+                                   type_attr='DataType', dfl_type=Structure,
                                    member_args=[tag, self])
 
     def __getitem__(self, member):
@@ -477,6 +535,70 @@ class Structure(Data):
             raise TypeError('Structure indices must be strings')
         return self.members[member]
 
+    @classmethod
+    def create_element(cls, scope, project, parent, datatype, value):
+        """
+        Create structure data element based on type and value
+        :param scope: the scope to create the element within
+        :param project: the controller, used for UDT lookup
+        :param parent: parent element to this element
+        :param datatype: datatype of this structure
+        :param value: dictionary of values to put in structure
+        """
+        if not datatype in project.datatypes:
+            raise ValueError("Datatype {} not found in datatypes".format(datatype))
+
+        if not parent.tagName == 'StructureMember':
+            structure = scope._create_append_element(parent, 'Structure', {'DataType' : datatype})
+        else:
+            structure = parent
+
+        datatype_members = project.datatypes[datatype].members
+        for i in range(len(datatype_members)):
+            member = datatype_members[str(i)]
+            if member.hidden == 'true':
+                # Skip hidden members
+                continue
+
+            member_data_type = member.data_type
+            if member_data_type == 'BIT':
+                member_data_type = 'BOOL'
+
+            if int(member.dimension):
+                #This member is an array
+                attributes = {'Name' : member.name,
+                              'DataType' : member_data_type,
+                              'Dimensions': member.dimension}
+                if member_data_type in base_data_types and member.radix:
+                    attributes['Radix'] = member.radix
+
+                data = value[member.name]
+
+                array_member = scope._create_append_element(structure, 'ArrayMember', attributes)
+
+                for j in range(int(member.dimension)):
+                    if member_data_type in base_data_types:
+                        #Base Data Type
+                        scope._create_append_element(array_member, 'Element', {'Index':'[{}]'.format(j), 'Value':data[j]})
+                    else:
+                        #Structure data type
+                        array_element = scope._create_append_element(array_member, 'Element', {'Index':'[{}]'.format(j)})
+                        Structure.create_element(scope, project, array_element, member_data_type, data)
+            else:
+                # Not an array member
+                if member_data_type in base_data_types:
+                    #Base Data Type
+                    attributes = {'Name' : member.name,
+                                  'DataType' : member_data_type,
+                                  'Radix' : member.radix,
+                                  'Value' : value[member.name]}
+                    data_member = scope._create_append_element(structure, 'DataValueMember', attributes)
+                else:
+                    #Structure data type
+                    attributes = {'Name' : member.name,
+                                  'DataType' : member_data_type}
+                    structure_member = scope._create_append_element(structure, 'StructureMember', attributes)
+                    Structure.create_element(scope, project, structure_member, member_data_type, value[member.name])
 
 class ArrayValue(object):
     """Descriptor class for accessing multiple values in an array."""
