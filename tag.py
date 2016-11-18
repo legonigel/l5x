@@ -70,6 +70,7 @@ class Tag(ElementAccess):
     description = ElementDescription(['ConsumeInfo'])
     tag_type = AttributeDescriptor('TagType', True)
     data_type = AttributeDescriptor('DataType', True)
+    alias_for = AttributeDescriptor('AliasFor')
     value = TagDataDescriptor('value')
     shape = TagDataDescriptor('shape')
     names = TagDataDescriptor('names')
@@ -80,16 +81,19 @@ class Tag(ElementAccess):
 
     def __init__(self, element):
         ElementAccess.__init__(self, element)
-
-        data_class = base_data_types.get(self.data_type, Structure)
-        self.data = data_class(self.get_data_element(), self)
-
+        if self.tag_type == 'Base':
+            data_class = base_data_types.get(self.data_type, Structure)
+            self.data = data_class(self.get_data_element(), self)
+        else:
+            self.data = None
     def get_data_element(self):
         """Returns the decorated data XML element.
 
         This is always the sole element contained with the decorated Data
         element.
         """
+        if not self.tag_type == 'Base':
+            raise ValueError("Cannot get data element on non-base tags")
         for e in self.child_elements:
             if ((e.tagName == 'Data')
                 and (e.getAttribute('Format') == 'Decorated')):
@@ -100,10 +104,14 @@ class Tag(ElementAccess):
         Indices are passed to the data object to access members of compound
         data types.
         """
+        if not self.tag_type == 'Base':
+            raise ValueError("Cannot get data on non-base tags")
         return self.data[key]
 
     def __len__(self):
         """Dispatches len queries to the base data type object."""
+        if not self.tag_type == 'Base':
+            raise ValueError("Cannot get data on non-base tags")
         return len(self.data)
 
     def clear_raw_data(self):
@@ -112,6 +120,8 @@ class Tag(ElementAccess):
         Called anytime a data value is set to avoid conflicts with
         modified decorated data elements.
         """
+        if not self.tag_type == 'Base':
+            raise ValueError("Cannot set data on non-base tags")
         for e in self.child_elements:
             if (e.tagName == 'Data') and (not e.hasAttribute('Format')):
                 data = self.element.removeChild(e)
@@ -119,18 +129,19 @@ class Tag(ElementAccess):
                 break
 
     @classmethod
-    def create(cls, scope, project, tagtype, tagname, datatype, value, description="", radix=None, dimensions=""):
+    def create(cls, scope, project, tagtype, tagname, datatype=None, value=None, description="", radix=None, dimensions="", alias_for=""):
         """
         Create a tag within scope
         :param scope: the scope to create the tag within (Controller, Program)
         :param project: the project within which this tag is created (used for UDT definitions)
         :param tagtype: The type of tag ("Base", "Alias")
         :param tagname: String of the name of the tag
-        :param datatype: String of the datatype of the tag
-        :param value: Value of the tag (type depends on tagtype). Arrays are lists, Structures are dicts, all base values are integers (I think)
+        :param datatype: String of the datatype of the tag (Base tags only)
+        :param value: Value of the tag (type depends on tagtype). Arrays are lists, Structures are dicts, all base values are integers (I think) (Base tags only)
         :param description: Strind description of the tag (optional)
-        :param radix: String of the radix type (see 1756-RM084V-EN-P) (optional)
+        :param radix: String of the radix type (see 1756-RM084V-EN-P) (optional) (Base tags only)
         :param dimensions: String of the dimensions of the array. Currently only 1D arrays are supported (optional)
+        :param alias_for: String of tag this tag is an alias for (Alias only)
         """
 
         """Selects the Tags element to add the rung to"""
@@ -182,7 +193,16 @@ class Tag(ElementAccess):
                 for i in range(int(dimensions)):
                     scope._create_append_element(array, 'Element',
                                                  {'Index' : "[{}]".format(i)})
-
+        elif tagtype == "Alias":
+            attributes = {'Name' : tagname,
+                          'TagType' : tagtype,
+                          'AliasFor' : alias_for,
+                          'ExternalAccess' : 'Read/Write'}
+            if radix is not None:
+                attributes['Radix'] = radix
+            element = scope._create_append_element(tag_element, 'Tag', attributes)
+        else:
+            raise ValueError("Bad tag type {}".format(tagtype))
         tag = Tag(element)
         tag.description = description
         scope.tags.append(tagname, tag.element)

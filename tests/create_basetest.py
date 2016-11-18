@@ -43,10 +43,14 @@ class CreateTest():
         Wire.create(sheet, iref, oref)
         FBD_TextBox.create(sheet, 'Test Function Block Description On Sheet')
         
+        #Create tags
         Tag.create(prj.controller, prj, 'Base', 'boolean1', 'BOOL', 1, 'Test Boolean 1')
         Tag.create(prj.controller, prj, 'Base', 'real1', 'REAL', 0.4, 'Test Real 1')
         Tag.create(prj.controller, prj, 'Base', 'dint1', 'DINT', 1, 'Test DINT 1')
         Tag.create(program, prj, 'Base', 'boolean2', 'BOOL', 1, 'Test Boolean 2')
+        
+        #Create alias tag
+        Tag.create(prj.controller, prj, 'Base', 'dint1', 'DINT', 1, 'Test DINT 1')
         return prj
 
 class CreateBaseTest(BaseTest):
