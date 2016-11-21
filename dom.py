@@ -344,6 +344,18 @@ class ElementDict(ElementAccess):
                 type_name = key            
             return self.types.get(type_name, self.dfl_type)(*args)
 
+    def __delitem__(self, key):
+        """Delete a child element by key"""
+        try:
+            element = self.members[key]
+        except KeyError:
+            raise KeyError("{0} not found".format(key))
+        
+        self.element.removeChild(element)
+        
+        #Delete item from internal dictionary
+        del self.members[key]
+
     def __len__(self):
         count = 0
         for member in self.members:
