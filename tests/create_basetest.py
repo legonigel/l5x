@@ -50,7 +50,7 @@ class CreateTest():
         Tag.create(program, prj, 'Base', 'boolean2', 'BOOL', 1, 'Test Boolean 2')
         
         #Create alias tag
-        Tag.create(prj.controller, prj, 'Base', 'dint1', 'DINT', 1, 'Test DINT 1')
+        Tag.create(prj.controller, prj, 'Alias', 'alias1', alias_for="dint1")
         return prj
 
 class CreateBaseTest(BaseTest):
