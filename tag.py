@@ -167,6 +167,8 @@ class Tag(ElementAccess):
 
             if datatype in base_data_types and not dimensions:
                 # Single base data
+                if value is None:
+                    value = 0
                 scope._create_append_element(data, 'DataValue', {'DataType' : datatype, \
                                                              'Radix' : radix, \
                                                              'Value' : str(value)})
@@ -177,9 +179,13 @@ class Tag(ElementAccess):
                                                         'Dimensions' : dimensions,
                                                         'Radix' : radix })
                 for i in range(int(dimensions)):
+                    data_value = 0
+                    if value is not None:
+                        data_value = value[i]
+
                     scope._create_append_element(array, 'Element',
                                                  {'Index' : "[{}]".format(i),
-                                                  'Value' : str(value[i])})
+                                                  'Value' : str(data_value)})
 
             elif not dimensions:
                 # Single structure
@@ -191,8 +197,9 @@ class Tag(ElementAccess):
                                                       { 'DataType' : datatype,
                                                         'Dimensions' : dimensions})
                 for i in range(int(dimensions)):
-                    scope._create_append_element(array, 'Element',
+                    index = scope._create_append_element(array, 'Element',
                                                  {'Index' : "[{}]".format(i)})
+                    Structure.create_element(scope, project, data, datatype, value[i])
         elif tagtype == "Alias":
             attributes = {'Name' : tagname,
                           'TagType' : tagtype,
@@ -592,7 +599,13 @@ class Structure(Data):
                 if member_data_type in base_data_types and member.radix:
                     attributes['Radix'] = member.radix
 
-                data = value[member.name]
+                if value is not None:
+                    data = value.get(member.name, 0)
+                else:
+                    if member_data_type in base_data_types:
+                        data = 0
+                    else:
+                        data = None
 
                 array_member = scope._create_append_element(structure, 'ArrayMember', attributes)
 
@@ -605,20 +618,22 @@ class Structure(Data):
                         array_element = scope._create_append_element(array_member, 'Element', {'Index':'[{}]'.format(j)})
                         Structure.create_element(scope, project, array_element, member_data_type, data)
             else:
+                if value is None:
+                    value = {}
                 # Not an array member
                 if member_data_type in base_data_types:
                     #Base Data Type
                     attributes = {'Name' : member.name,
                                   'DataType' : member_data_type,
                                   'Radix' : member.radix,
-                                  'Value' : value[member.name]}
+                                  'Value' : value.get(member.name, 0)}
                     data_member = scope._create_append_element(structure, 'DataValueMember', attributes)
                 else:
                     #Structure data type
                     attributes = {'Name' : member.name,
                                   'DataType' : member_data_type}
                     structure_member = scope._create_append_element(structure, 'StructureMember', attributes)
-                    Structure.create_element(scope, project, structure_member, member_data_type, value[member.name])
+                    Structure.create_element(scope, project, structure_member, member_data_type, value.get(member.name, None))
 
 class ArrayValue(object):
     """Descriptor class for accessing multiple values in an array."""
