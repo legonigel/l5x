@@ -351,7 +351,8 @@ class ElementDict(ElementAccess):
         except KeyError:
             raise KeyError("{0} not found".format(key))
         
-        self.element.removeChild(element)
+        old_child = self.element.removeChild(element)
+        old_child.unlink()
         
         #Delete item from internal dictionary
         del self.members[key]
