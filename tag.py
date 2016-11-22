@@ -575,9 +575,10 @@ class Structure(Data):
         :param datatype: datatype of this structure
         :param value: dictionary of values to put in structure
         """
-        project_datatype = project.datatypes.get(datatype, None)
-        if project_datatype is None:
+        if datatype not in project.datatypes:
             raise ValueError("Datatype {} not found in datatypes".format(datatype))
+        else:
+            project_datatype = project.datatypes[datatype]
 
         if not parent.tagName == 'StructureMember':
             structure = scope._create_append_element(parent, 'Structure', {'DataType' : datatype})
