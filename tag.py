@@ -197,9 +197,12 @@ class Tag(ElementAccess):
                                                       { 'DataType' : datatype,
                                                         'Dimensions' : dimensions})
                 for i in range(int(dimensions)):
+                    data_value = None
+                    if value is not None:
+                        data_value = value[i]
                     index = scope._create_append_element(array, 'Element',
                                                  {'Index' : "[{}]".format(i)})
-                    Structure.create_element(scope, project, data, datatype, value[i])
+                    Structure.create_element(scope, project, data, datatype, data_value)
         elif tagtype == "Alias":
             attributes = {'Name' : tagname,
                           'TagType' : tagtype,
@@ -572,7 +575,8 @@ class Structure(Data):
         :param datatype: datatype of this structure
         :param value: dictionary of values to put in structure
         """
-        if not datatype in project.datatypes:
+        project_datatype = project.datatypes.get(datatype, None)
+        if project_datatype is None:
             raise ValueError("Datatype {} not found in datatypes".format(datatype))
 
         if not parent.tagName == 'StructureMember':
@@ -580,7 +584,7 @@ class Structure(Data):
         else:
             structure = parent
 
-        datatype_members = project.datatypes[datatype].members
+        datatype_members = project_datatype.members
         for i in range(len(datatype_members)):
             member = datatype_members[str(i)]
             if member.hidden == 'true':
