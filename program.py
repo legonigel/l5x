@@ -153,7 +153,7 @@ class RLLRoutine(Routine):
                                                   'Type' : 'RLL'})
         program._create_append_element(element, 'RLLContent')
 
-        routine = Routine(element)
+        routine = RLLRoutine(element)
         program.routines.append(name, routine.element)
         return routine
 
@@ -185,7 +185,7 @@ class FBDRoutine(Routine):
         program._create_append_element(element, 'FBDContent', {'SheetSize' : 'Letter - 8.5 x 11 in',
                                                   'SheetOrientation' : 'Landscape'})
 
-        routine = Routine(element)
+        routine = FBDRoutine(element)
         program.routines.append(name, routine.element)
         return routine
 
@@ -215,7 +215,7 @@ class SFCRoutine(Routine):
         program._create_append_element(element, 'SFCContent', {'SheetSize' : 'A4 - 210 x 297 mm',
                                                   'SheetOrientation' : 'Landscape'})
 
-        routine = Routine(element)
+        routine = SFCRoutine(element)
         program.routines.append(name, routine.element)
         return routine
 
@@ -240,7 +240,7 @@ class STRoutine(Routine):
                                                   'Type' : 'ST'})
         program._create_append_element(element, 'STContent')
 
-        routine = Routine(element)
+        routine = STRoutine(element)
         program.routines.append(name, routine.element)
         return routine
 
@@ -267,35 +267,45 @@ class Rung(ElementAccess):
         """
         The text of the rung
 
-        :getter: Returns the text of the rung
+        :getter: Returns the text of the rung, or empty string if not found
         :setter: Sets the rung text
         :type: string
         """
-        return str(CDATAElement(self.get_child_element('Text')))
+        try:
+            return str(CDATAElement(self.get_child_element('Text')))
+        except KeyError:
+            return ""
 
     @text.setter
     def text(self, value):
         if not isinstance(value, str):
             raise TypeError("Rung text must be string")
-        CDATAElement(self.get_child_element('Text')).set(text)
+        if not value.endswith(";"):
+            raise ValueError("Ladder Logic rungs must end with a semicolon")
+        CDATAElement(self.get_child_element('Text')).set(value)
 
     @property
     def comment(self):
         """
         The text of the comment for the rung
 
-        :getter: Returns the text of the comment
+        :getter: Returns the text of the comment, or empty string if not found
         :setter: Sets the rung comment
         :type: string
         """
-        return str(CDATAElement(self.get_child_element('Comment')))
+        try:
+            return str(CDATAElement(self.get_child_element('Comment')))
+        except KeyError:
+            return ""
 
     @comment.setter
     def comment(self, value):
         if not isinstance(value, str):
             raise TypeError("Rung comment must be string")
-        CDATAElement(self.get_child_element('Comment')).set(text)
-
+        try:
+            CDATAElement(self.get_child_element('Comment')).set(value)
+        except KeyError:
+            CDATAElement(parent=self, name='Comment').set(value)
 
     @classmethod
     def create(cls, routine, text, number=None):
@@ -306,6 +316,8 @@ class Rung(ElementAccess):
             lastnumber = routine.getLastRungNumber()
             if not (number >= 0 and number < lastnumber):
                 raise RungNumberOutOfRangeError()
+        if not text.endswith(";"):
+            raise ValueError("Ladder Logic rungs must end with a semicolon")
         """Selects the RLLContent element to add the rung to"""
         rllcontent = routine.element.getElementsByTagName('RLLContent')[0]
         element = routine._create_append_element(rllcontent, \
