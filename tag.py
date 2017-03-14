@@ -11,8 +11,8 @@ class Scope(ElementAccess):
     """Container to hold a group of tags within a specific scope."""
     def __init__(self, element):
         ElementAccess.__init__(self, element)
-        tag_element = self.get_child_element('Tags')
-        self.tags = ElementDict(tag_element, key_attr='Name', types=Tag)
+        self.tag_element = self.get_child_element('Tags')
+        self.tags = ElementDict(self.tag_element, key_attr='Name', types=Tag)
 
 class TagDataDescriptor(object):
     """Descriptor class to dispatch attribute access to a data object.
@@ -83,7 +83,11 @@ class Tag(ElementAccess):
         ElementAccess.__init__(self, element)
         if self.tag_type == 'Base':
             data_class = base_data_types.get(self.data_type, Structure)
-            self.data = data_class(self.get_data_element(), self)
+            data_element = self.get_data_element()
+            if data_element is not None:
+                self.data = data_class(self.get_data_element(), self)
+            else:
+                self.data = None
         else:
             self.data = None
     def get_data_element(self):
@@ -91,6 +95,7 @@ class Tag(ElementAccess):
 
         This is always the sole element contained with the decorated Data
         element.
+        Returns None if no data found
         """
         if not self.tag_type == 'Base':
             raise ValueError("Cannot get data element on non-base tags")
@@ -98,6 +103,7 @@ class Tag(ElementAccess):
             if ((e.tagName == 'Data')
                 and (e.getAttribute('Format') == 'Decorated')):
                 return ElementAccess(e).child_elements[0]
+        return None #None if no data element
 
     def __getitem__(self, key):
         """
@@ -106,12 +112,16 @@ class Tag(ElementAccess):
         """
         if not self.tag_type == 'Base':
             raise ValueError("Cannot get data on non-base tags")
+        if self.data is None:
+            raise ValueError("Cannot get data on tag with no data")
         return self.data[key]
 
     def __len__(self):
         """Dispatches len queries to the base data type object."""
         if not self.tag_type == 'Base':
             raise ValueError("Cannot get data on non-base tags")
+        if self.data is None:
+            raise ValueError("Cannot get data on tag with no data")
         return len(self.data)
 
     def clear_raw_data(self):
@@ -145,7 +155,7 @@ class Tag(ElementAccess):
         """
 
         """Selects the Tags element to add the rung to"""
-        tag_element = scope.element.getElementsByTagName('Tags')[0]        
+        tag_element = scope.tag_element        
         if tagtype == "Base":
             if radix is None:
                 radix = "Decimal" #Default to decimal radix for base tags
@@ -155,7 +165,8 @@ class Tag(ElementAccess):
                           'DataType' : datatype,
                           'Constant' : 'false',
                           'ExternalAccess' : 'Read/Write'}
-            if datatype in base_data_types:
+            is_base_datatype = datatype in base_data_types
+            if is_base_datatype:
                 attributes['Radix'] = radix
 
             if dimensions:
@@ -163,46 +174,38 @@ class Tag(ElementAccess):
                 attributes['Dimensions'] = dimensions
 
             element = scope._create_append_element(tag_element, 'Tag', attributes)
-            data = scope._create_append_element(element, 'Data', {'Format' : 'Decorated'})
+            if value is not None: #Only make data element if value is set
+                data = scope._create_append_element(element, 'Data', {'Format' : 'Decorated'})
 
-            if datatype in base_data_types and not dimensions:
-                # Single base data
-                if value is None:
-                    value = 0
-                scope._create_append_element(data, 'DataValue', {'DataType' : datatype, \
-                                                             'Radix' : radix, \
-                                                             'Value' : str(value)})
-            elif datatype in base_data_types and dimensions:
-                # Array of base data
-                array = scope._create_append_element(data, 'Array',
-                                                      { 'DataType' : datatype,
-                                                        'Dimensions' : dimensions,
-                                                        'Radix' : radix })
-                for i in range(int(dimensions)):
-                    data_value = 0
-                    if value is not None:
-                        data_value = value[i]
+                if is_base_datatype and not dimensions:
+                    # Single base data
+                    scope._create_append_element(data, 'DataValue', {'DataType' : datatype, \
+                                                                 'Radix' : radix, \
+                                                                 'Value' : str(value)})
+                elif is_base_datatype and dimensions:
+                    # Array of base data
+                    array = scope._create_append_element(data, 'Array',
+                                                          { 'DataType' : datatype,
+                                                            'Dimensions' : dimensions,
+                                                            'Radix' : radix })
+                    for i in range(int(dimensions)):
+                        scope._create_append_element(array, 'Element',
+                                                     {'Index' : "[{}]".format(i),
+                                                      'Value' : str(value[i])})
 
-                    scope._create_append_element(array, 'Element',
-                                                 {'Index' : "[{}]".format(i),
-                                                  'Value' : str(data_value)})
-
-            elif not dimensions:
-                # Single structure
-                Structure.create_element(scope, project, data, datatype, value)
-                pass
-            else:
-                # Array of Structures
-                array = scope._create_append_element(data, 'Array',
-                                                      { 'DataType' : datatype,
-                                                        'Dimensions' : dimensions})
-                for i in range(int(dimensions)):
-                    data_value = None
-                    if value is not None:
-                        data_value = value[i]
-                    index = scope._create_append_element(array, 'Element',
-                                                 {'Index' : "[{}]".format(i)})
-                    Structure.create_element(scope, project, data, datatype, data_value)
+                elif not dimensions:
+                    # Single structure
+                    Structure.create_element(scope, project, data, datatype, value)
+                    pass
+                else:
+                    # Array of Structures
+                    array = scope._create_append_element(data, 'Array',
+                                                          { 'DataType' : datatype,
+                                                            'Dimensions' : dimensions})
+                    for i in range(int(dimensions)):
+                        index = scope._create_append_element(array, 'Element',
+                                                     {'Index' : "[{}]".format(i)})
+                        Structure.create_element(scope, project, data, datatype, value[i])
         elif tagtype == "Alias":
             attributes = {'Name' : tagname,
                           'TagType' : tagtype,
@@ -576,6 +579,8 @@ class Structure(Data):
         :param value: dictionary of values to put in structure
         """
         if datatype not in project.datatypes:
+            print parent.tagName
+            print parent.getAttribute('Name')
             raise ValueError("Datatype {} not found in datatypes".format(datatype))
         else:
             project_datatype = project.datatypes[datatype]
@@ -604,13 +609,14 @@ class Structure(Data):
                 if member_data_type in base_data_types and member.radix:
                     attributes['Radix'] = member.radix
 
-                if value is not None:
-                    data = value.get(member.name, 0)
+                if member_data_type in base_data_types:
+                    default_value = [0] * int(member.dimension)
                 else:
-                    if member_data_type in base_data_types:
-                        data = 0
-                    else:
-                        data = None
+                    default_value = None
+                if value is not None:
+                    data = value.get(member.name, default_value)
+                else:
+                    data = default_value
 
                 array_member = scope._create_append_element(structure, 'ArrayMember', attributes)
 

@@ -66,7 +66,10 @@ class CDATAElement(ElementAccess):
             ElementAccess.__init__(self, element)
             self.get_existing()
         else:
+            if parent is None:
+                raise ValueError("Cannot create CDATA on parent None")
             element = parent.create_element(name, attributes)
+            parent.append_child(element)
             ElementAccess.__init__(self, element)
 
             # Add the child CDATA section.
@@ -157,8 +160,10 @@ class ElementDescription(object):
 
         # Create as first child if no elements to follow were found.
         if follow is None:
-            instance.element.insertBefore(new.element,
-                                          instance.element.firstChild)
+            if new.element is not instance.element.firstChild:
+                # New element is not already the first element
+                instance.element.insertBefore(new.element,
+                                              instance.element.firstChild)
 
         # If any follow elements exist, insert the new description
         # element after the last one found. DOM node operations do not
