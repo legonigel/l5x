@@ -305,7 +305,11 @@ class Rung(ElementAccess):
         try:
             CDATAElement(self.get_child_element('Comment')).set(value)
         except KeyError:
-            CDATAElement(parent=self, name='Comment').set(value)
+            element = self.create_element('Comment', {})
+            self.element.insertBefore(element, self.element.firstChild)
+            node = self.doc.createCDATASection('')
+            element.appendChild(node)
+            CDATAElement(self.get_child_element('Comment')).set(value)
 
     @classmethod
     def create(cls, routine, text, number=None):
